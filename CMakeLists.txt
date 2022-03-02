@@ -27,7 +27,7 @@ set(SOURCE_FILES
     extlib/Inverse3.cpp
 )
 
-set(README_FILES Readme.txt)
+set(README_FILES Readme.md)
 
 # Create the plugin library.
 add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES} ${README_FILES})
