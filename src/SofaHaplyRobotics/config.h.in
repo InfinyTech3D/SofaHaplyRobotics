@@ -1,0 +1,19 @@
+/******************************************************************************
+* License version                                                             *
+*                                                                             *
+* Authors:                                                                    *
+* Contact information:                                                        *
+******************************************************************************/
+#ifndef SOFA_HAPLYROBOTICS_CONFIG_H
+#define SOFA_HAPLYROBOTICS_CONFIG_H
+
+#include <sofa/config.h>
+
+#ifdef SOFA_BUILD_SOFAHAPLYROBOTICS
+#  define SOFA_HAPLYROBOTICS_API SOFA_EXPORT_DYNAMIC_LIBRARY
+#else
+#  define SOFA_HAPLYROBOTICS_API SOFA_IMPORT_DYNAMIC_LIBRARY
+#endif
+
+#endif // SOFA_HAPLYROBOTICS_CONFIG_H
+
