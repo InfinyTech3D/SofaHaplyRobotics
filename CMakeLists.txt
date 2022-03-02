@@ -11,6 +11,11 @@ set(HEADER_FILES
     
     ${SOFAHAPLYROBOTICS_SRC_DIR}/Haply_HapticThreadManager.h    
     ${SOFAHAPLYROBOTICS_SRC_DIR}/Haply_Inverse3Controller.h
+    
+    extlib/Stream.h
+    extlib/SerialStream.h
+    extlib/serialib.h
+    extlib/Inverse3.h
 )
 
 set(SOURCE_FILES
@@ -18,6 +23,8 @@ set(SOURCE_FILES
     ${SOFAHAPLYROBOTICS_SRC_DIR}/Haply_Inverse3Controller.cpp
     
     ${SOFAHAPLYROBOTICS_SRC_DIR}/initSofaHaplyRoboticsPlugin.cpp
+    extlib/serialib.cpp
+    extlib/Inverse3.cpp
 )
 
 set(README_FILES Readme.txt)
@@ -32,6 +39,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE "-DSOFA_BUILD_SOFAHAPLYROBOTI
 target_link_libraries(${PROJECT_NAME} PUBLIC SofaConstraint SofaHaptics SofaOpenglVisual)
 
 target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>")
+target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/extlib>")
 target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>")
 target_include_directories(${PROJECT_NAME} PUBLIC "$<INSTALL_INTERFACE:include>")
 
