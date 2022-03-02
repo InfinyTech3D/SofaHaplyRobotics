@@ -9,6 +9,8 @@
 #include <SofaHaplyRobotics/config.h>
 #include <sofa/type/Vec.h>
 #include <SofaUserInteraction/Controller.h>
+#include <Inverse3.h>
+#include <mutex>
 
 //force feedback
 #include <SofaHaptics/ForceFeedback.h>
@@ -37,33 +39,38 @@ public:
     /// default constructor
     Haply_Inverse3Controller();
 
+    virtual ~Haply_Inverse3Controller();
+
     /// Component API 
     ///{
     void init() override;
+    /// SOFA api method called after all components have been init
+    void bwdInit() override;
     void handleEvent(core::objectmodel::Event *) override;
     void draw(const sofa::core::visual::VisualParams* vparams) override;
     ///}
+
+    /// Main Haptic thread methods
+    void Haptics(std::atomic<bool>& terminate, void* p_this);
+
+    /// Thread methods to cpy data from m_hapticData to m_simuData
+    void CopyData(std::atomic<bool>& terminate, void* p_this);
    
+    /// Method to notify that simulation is running
+    void setSimulationStarted() { m_simulationStarted = true; }
+
 protected:
     /// Internal method to init specific info. Called by init
     virtual void initDevice();
     
     /// Main method to clear the device
-    virtual void clearDevice() {};
+    virtual void clearDevice();
+
+    bool createHapticThreads();
 
     /// Main method from the SOFA simulation call at each simulation step begin.
-    virtual void simulation_updateData() {};
-
-    
-    /// Internal method to bo overriden by child class to draw specific information. Called by @sa draw
-    virtual void drawImpl(const sofa::core::visual::VisualParams* vparams) { SOFA_UNUSED(vparams); }
-
-    /// Internal method to bo overriden by child class to draw debug information. Called by @sa draw if d_drawDebug is true
-    virtual void drawDebug(const sofa::core::visual::VisualParams* vparams) { SOFA_UNUSED(vparams); }
-
-protected:
-    void updatePosition() {}
-
+    void simulation_updatePosition();
+   
     void updateButtonStates() {}
 
 public:
@@ -93,6 +100,19 @@ protected:
     /// Internal parameter to know if device is ready or not.
     bool m_deviceReady = false;
 
+    bool hapticLoopStarted = false; ///< Bool to store the information is haptic thread is running or not.
+    bool m_simulationStarted = false; ///< Bool to store the information that the simulation is running or not.
+
+    bool logThread = true;
+
+    /// Bool to notify thread to stop work
+    std::atomic<bool> m_terminateHaptic = true;
+    std::atomic<bool> m_terminateCopy = true;
+
+    /// haptic thread c++ object
+    std::thread haptic_thread;
+
+    std::thread copy_thread;
 
 };
 

@@ -15,10 +15,14 @@
 #include <iomanip> 
 #include <sofa/core/ObjectFactory.h>
 
-
+#include <sofa/helper/system/thread/CTime.h>
+#include <chrono>
+#include <SerialStream.h>
 
 namespace sofa::HaplyRobotics
 {
+
+using namespace sofa::helper::system::thread;
 
 int Haply_Inverse3ControllerClass = core::RegisterObject("Driver allowing interfacing with Haptic Haply Robotics Inverse3 device.")
     .add< Haply_Inverse3Controller >()
@@ -27,7 +31,7 @@ int Haply_Inverse3ControllerClass = core::RegisterObject("Driver allowing interf
 
 //constructeur
 Haply_Inverse3Controller::Haply_Inverse3Controller()
-    : d_portName(initData(&d_portName, std::string("//./COM3"), "portName", "Name of the port used by this device"))
+    : d_portName(initData(&d_portName, std::string("COM8"), "portName", "Name of the port used by this device"))
     , d_hapticIdentity(initData(&d_hapticIdentity, "hapticIdentity", "Data to store Information received by HW device"))
     , d_positionBase(initData(&d_positionBase, Vec3(0, 0, 0), "positionBase", "Position of the device base in the SOFA scene world coordinates"))
     , d_orientationBase(initData(&d_orientationBase, Quat(0, 0, 0, 1), "orientationBase", "Orientation of the device base in the SOFA scene world coordinates"))
@@ -44,6 +48,30 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
 }
 
 
+Haply_Inverse3Controller::~Haply_Inverse3Controller()
+{
+    std::cout << "~Haply_Inverse3Controller()" << std::endl;
+
+    if (logThread)
+    {
+        msg_warning("HapticAvatar_HapticThreadManager") << "kill s_hapticThread";
+    }
+
+    if (m_terminateHaptic == false && m_deviceReady)
+    {
+        m_terminateHaptic = true;
+        haptic_thread.join();
+    }
+
+    if (m_terminateCopy == false && m_deviceReady)
+    {
+        m_terminateCopy = true;
+        copy_thread.join();
+    }
+
+    clearDevice();
+}
+
 //executed once at the start of Sofa, initialization of all variables excepts haptics-related ones
 void Haply_Inverse3Controller::init()
 {
@@ -52,9 +80,168 @@ void Haply_Inverse3Controller::init()
 }
 
 
+void Haply_Inverse3Controller::bwdInit()
+{
+    msg_info() << "Haply_Inverse3Controller::bwdInit()";
+
+    createHapticThreads();
+}
+
+
+
+
 void Haply_Inverse3Controller::initDevice()
 {
+    msg_info() << "Haply_Inverse3Controller::initDevice()";
+    const std::string& portName = d_portName.getValue();
+
+    msg_info() << "PortName: " << portName;
+    SerialStream stream(portName.c_str());
     
+    Haply::HardwareAPI::Devices::Inverse3 inverse3(&stream);
+
+    inverse3.SendDeviceWakeup();
+    inverse3.ReceiveDeviceInfo();
+
+    //std::cout << std::endl << "press ENTER to continue";
+    //std::cin.get();
+
+    //while (true)
+    //{
+    //    inverse3.SendEndEffectorForce();
+    //    inverse3.ReceiveEndEffectorState();
+
+    //    std::this_thread::sleep_for(std::chrono::microseconds(100));
+    //}
+}
+
+
+void Haply_Inverse3Controller::clearDevice()
+{
+    msg_info() << "Haply_Inverse3Controller::clearDevice()";
+}
+
+
+bool Haply_Inverse3Controller::createHapticThreads()
+{
+    msg_info() << "Haply_Inverse3Controller::createHapticThreads()";
+
+    m_terminateHaptic = false;
+    haptic_thread = std::thread(&Haply_Inverse3Controller::Haptics, this, std::ref(this->m_terminateHaptic), this);
+    hapticLoopStarted = true;
+
+    m_terminateCopy = false;
+    copy_thread = std::thread(&Haply_Inverse3Controller::CopyData, this, std::ref(this->m_terminateCopy), this);
+}
+
+
+void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void* p_this)
+{
+    if (logThread)
+        msg_warning("HapticAvatar_HapticThreadManager") << "Main Haptics thread created";
+
+    Haply_Inverse3Controller* _deviceCtrl = static_cast<Haply_Inverse3Controller*>(p_this);
+
+    // Loop Timer
+    long targetSpeedLoop = 1; // Target loop speed: 1ms
+
+    // Use computer tick for timer
+    ctime_t refTicksPerMs = CTime::getRefTicksPerSec() / 1000;
+    ctime_t targetTicksPerLoop = targetSpeedLoop * refTicksPerMs;
+
+    int cptLoop = 0;
+    ctime_t startTimePrev = CTime::getRefTime();
+    ctime_t summedLoopDuration = 0;
+
+    while (!terminateHaptic)
+    {
+        ctime_t startTime = CTime::getRefTime();
+        summedLoopDuration += (startTime - startTimePrev);
+        startTimePrev = startTime;
+
+        // loop over the devices
+        //for (auto device : m_devices) // mutex?
+        //{            
+        //    // Force feedback computation
+        //    
+        //}
+
+        if (logThread)
+        {
+            cptLoop++;
+            if (cptLoop % 1000 == 0) {
+                float updateFreq = 1000 * 1000 / ((float)summedLoopDuration / (float)refTicksPerMs); // in Hz
+                std::cout << "DeviceName: " << " | Iteration: " << cptLoop << " | Average haptic loop frequency " << std::to_string(int(updateFreq)) << std::endl;
+                summedLoopDuration = 0;
+            }
+        }
+
+
+        ctime_t endTime = CTime::getRefTime();
+        ctime_t duration = endTime - startTime;
+
+        // If loop is quicker than the target loop speed. Wait here.
+        duration = 0;
+        while (duration < targetTicksPerLoop)
+        {
+            endTime = CTime::getRefTime();
+            duration = endTime - startTime;
+        }
+    }
+
+    if (logThread)
+        msg_warning("Haply_HapticThreadManager") << "Haptics thread END!!";
+}
+
+
+void Haply_Inverse3Controller::CopyData(std::atomic<bool>& terminateCopy, void* p_this)
+{
+    Haply_Inverse3Controller* _deviceCtrl = static_cast<Haply_Inverse3Controller*>(p_this);
+
+    // Use computer tick for timer
+    ctime_t targetSpeedLoop = 1 / 2; // Target loop speed: 0.5ms
+    ctime_t refTicksPerMs = CTime::getRefTicksPerSec() / 1000;
+    ctime_t targetTicksPerLoop = targetSpeedLoop * refTicksPerMs;
+    double speedTimerMs = 1000 / double(CTime::getRefTicksPerSec());
+
+    ctime_t lastTime = CTime::getRefTime();
+    std::cout << "refTicksPerMs: " << refTicksPerMs << " targetTicksPerLoop: " << targetTicksPerLoop << std::endl;
+    int cptLoop = 0;
+    // Haptics Loop
+    while (!terminateCopy)
+    {
+        ctime_t startTime = CTime::getRefTime();
+        ///////////_deviceCtrl->m_simuData = _deviceCtrl->m_hapticData;
+
+        ctime_t endTime = CTime::getRefTime();
+        ctime_t duration = endTime - startTime;
+
+        // If loop is quicker than the target loop speed. Wait here.
+        while (duration < targetTicksPerLoop)
+        {
+            endTime = CTime::getRefTime();
+            duration = endTime - startTime;
+        }
+    }
+}
+
+
+void Haply_Inverse3Controller::simulation_updatePosition()
+{
+    msg_info() << "Haply_Inverse3Controller::simulation_updateData()";
+}
+
+
+void Haply_Inverse3Controller::handleEvent(core::objectmodel::Event* event)
+{
+    if (!m_deviceReady)
+        return;
+
+    if (dynamic_cast<sofa::simulation::AnimateBeginEvent*>(event))
+    {
+        Haply_HapticThreadManager::getInstance()->setSimulationStarted();
+        simulation_updatePosition();
+    }
 }
 
 
@@ -63,25 +250,10 @@ void Haply_Inverse3Controller::draw(const sofa::core::visual::VisualParams* vpar
     if (!m_deviceReady)
         return;
 
-    // draw internal specific info
-    drawImpl(vparams);
-
     // If true draw debug information
     if (d_drawDebug.getValue())
     {
-        drawDebug(vparams);
-    }
-}
 
-void Haply_Inverse3Controller::handleEvent(core::objectmodel::Event *event)
-{
-    if (!m_deviceReady)
-        return;
-
-    if (dynamic_cast<sofa::simulation::AnimateBeginEvent *>(event))
-    {
-        Haply_HapticThreadManager::getInstance()->setSimulationStarted();
-        simulation_updateData();
     }
 }
 
