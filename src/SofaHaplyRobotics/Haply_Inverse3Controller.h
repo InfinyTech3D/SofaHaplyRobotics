@@ -96,6 +96,9 @@ public:
     // link to the forceFeedBack component, if not set will search through graph and take first one encountered
     SingleLink<Haply_Inverse3Controller, ForceFeedback, BaseLink::FLAG_STOREPATH | BaseLink::FLAG_STRONGLINK> l_forceFeedback;
 
+
+    Haply::HardwareAPI::Devices::Inverse3* m_deviceAPI = nullptr;
+
 protected:
     /// Internal parameter to know if device is ready or not.
     bool m_deviceReady = false;

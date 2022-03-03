@@ -84,7 +84,7 @@ void Haply_Inverse3Controller::bwdInit()
 {
     msg_info() << "Haply_Inverse3Controller::bwdInit()";
 
-    createHapticThreads();
+    m_deviceReady = createHapticThreads();
 }
 
 
@@ -98,10 +98,11 @@ void Haply_Inverse3Controller::initDevice()
     msg_info() << "PortName: " << portName;
     SerialStream stream(portName.c_str());
     
-    Haply::HardwareAPI::Devices::Inverse3 inverse3(&stream);
+    m_deviceAPI = new Haply::HardwareAPI::Devices::Inverse3(&stream);
 
-    inverse3.SendDeviceWakeup();
-    inverse3.ReceiveDeviceInfo();
+    m_deviceAPI->SendDeviceWakeup();
+    m_deviceAPI->ReceiveDeviceInfo();
+   // m_deviceAPI->ReceiveEndEffectorState();
 
     //std::cout << std::endl << "press ENTER to continue";
     //std::cin.get();
@@ -119,6 +120,11 @@ void Haply_Inverse3Controller::initDevice()
 void Haply_Inverse3Controller::clearDevice()
 {
     msg_info() << "Haply_Inverse3Controller::clearDevice()";
+    if (m_deviceAPI != nullptr)
+    {
+        delete m_deviceAPI;
+        m_deviceAPI = nullptr;
+    }
 }
 
 
@@ -132,6 +138,8 @@ bool Haply_Inverse3Controller::createHapticThreads()
 
     m_terminateCopy = false;
     copy_thread = std::thread(&Haply_Inverse3Controller::CopyData, this, std::ref(this->m_terminateCopy), this);
+
+    return true;
 }
 
 
@@ -141,6 +149,7 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
         msg_warning("HapticAvatar_HapticThreadManager") << "Main Haptics thread created";
 
     Haply_Inverse3Controller* _deviceCtrl = static_cast<Haply_Inverse3Controller*>(p_this);
+    auto _deviceAPI = _deviceCtrl->m_deviceAPI;
 
     // Loop Timer
     long targetSpeedLoop = 1; // Target loop speed: 1ms
@@ -181,7 +190,7 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
         ctime_t duration = endTime - startTime;
 
         // If loop is quicker than the target loop speed. Wait here.
-        duration = 0;
+        //duration = 0;
         while (duration < targetTicksPerLoop)
         {
             endTime = CTime::getRefTime();
