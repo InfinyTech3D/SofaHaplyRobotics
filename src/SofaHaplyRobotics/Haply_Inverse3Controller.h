@@ -10,6 +10,7 @@
 #include <sofa/type/Vec.h>
 #include <SofaUserInteraction/Controller.h>
 #include <Inverse3.h>
+#include <SerialStream.h>
 #include <mutex>
 
 //force feedback
@@ -97,6 +98,19 @@ public:
     SingleLink<Haply_Inverse3Controller, ForceFeedback, BaseLink::FLAG_STOREPATH | BaseLink::FLAG_STRONGLINK> l_forceFeedback;
 
 
+    /// Data public for haptic thread
+    /// Structure used to transfer data fromt he haptic thread to the simulation thread.
+    struct DeviceData
+    {
+        float position[3];
+        sofa::type::fixed_array<float, 3> motorValues;
+    };
+
+    /// Data belonging to the haptic thread only
+    DeviceData m_hapticData;
+    /// Data used in the copy thread to copy @sa m_hapticData into this data that can be used by simulation thread.
+    DeviceData m_simuData;
+
     Haply::HardwareAPI::Devices::Inverse3* m_deviceAPI = nullptr;
 
 protected:
@@ -116,6 +130,8 @@ protected:
     std::thread haptic_thread;
 
     std::thread copy_thread;
+
+    SerialStream* m_stream;
 
 };
 

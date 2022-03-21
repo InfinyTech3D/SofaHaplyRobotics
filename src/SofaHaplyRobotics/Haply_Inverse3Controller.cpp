@@ -17,7 +17,6 @@
 
 #include <sofa/helper/system/thread/CTime.h>
 #include <chrono>
-#include <SerialStream.h>
 
 namespace sofa::HaplyRobotics
 {
@@ -96,9 +95,9 @@ void Haply_Inverse3Controller::initDevice()
     const std::string& portName = d_portName.getValue();
 
     msg_info() << "PortName: " << portName;
-    SerialStream stream(portName.c_str());
+    m_stream = new SerialStream(portName.c_str());
     
-    m_deviceAPI = new Haply::HardwareAPI::Devices::Inverse3(&stream);
+    m_deviceAPI = new Haply::HardwareAPI::Devices::Inverse3(m_stream);
 
     m_deviceAPI->SendDeviceWakeup();
     m_deviceAPI->ReceiveDeviceInfo();
@@ -120,10 +119,17 @@ void Haply_Inverse3Controller::initDevice()
 void Haply_Inverse3Controller::clearDevice()
 {
     msg_info() << "Haply_Inverse3Controller::clearDevice()";
+    
     if (m_deviceAPI != nullptr)
     {
         delete m_deviceAPI;
         m_deviceAPI = nullptr;
+    }
+
+    if (m_stream != nullptr)
+    {
+        delete m_stream;
+        m_stream = nullptr;
     }
 }
 
@@ -220,7 +226,7 @@ void Haply_Inverse3Controller::CopyData(std::atomic<bool>& terminateCopy, void* 
     while (!terminateCopy)
     {
         ctime_t startTime = CTime::getRefTime();
-        ///////////_deviceCtrl->m_simuData = _deviceCtrl->m_hapticData;
+        _deviceCtrl->m_simuData = _deviceCtrl->m_hapticData;
 
         ctime_t endTime = CTime::getRefTime();
         ctime_t duration = endTime - startTime;
@@ -237,7 +243,13 @@ void Haply_Inverse3Controller::CopyData(std::atomic<bool>& terminateCopy, void* 
 
 void Haply_Inverse3Controller::simulation_updatePosition()
 {
-    msg_info() << "Haply_Inverse3Controller::simulation_updateData()";
+    //msg_info() << "Haply_Inverse3Controller::simulation_updateData()";
+    //helper::WriteAccessor<Data<Coord> > position = d_posDevice;
+    
+    Coord& posDevice = *d_posDevice.beginEdit();
+    posDevice.getCenter() = Vec3(m_simuData.position[0], m_simuData.position[1], m_simuData.position[2]) * d_scale.getValue();
+    posDevice.getOrientation() = Quat::identity();
+    d_posDevice.endEdit();
 }
 
 
@@ -248,7 +260,7 @@ void Haply_Inverse3Controller::handleEvent(core::objectmodel::Event* event)
 
     if (dynamic_cast<sofa::simulation::AnimateBeginEvent*>(event))
     {
-        Haply_HapticThreadManager::getInstance()->setSimulationStarted();
+        m_simulationStarted = true;
         simulation_updatePosition();
     }
 }
