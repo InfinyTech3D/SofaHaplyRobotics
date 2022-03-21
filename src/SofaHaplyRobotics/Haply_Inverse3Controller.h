@@ -84,7 +84,6 @@ public:
     Data<Quat> d_orientationBase; ///< Input Orientation of the device base in the scene world coordinates
 
     Data<SReal> d_scale; ///< Default scale applied to the device Coordinates
-    Data<SReal> d_forceScale; ///< Default forceScale applied to the force feedback. 
 
     /// Data parameter to draw debug information
     Data<bool> d_drawDebug;

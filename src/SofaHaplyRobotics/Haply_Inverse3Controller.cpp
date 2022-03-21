@@ -34,9 +34,8 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     , d_hapticIdentity(initData(&d_hapticIdentity, "hapticIdentity", "Data to store Information received by HW device"))
     , d_positionBase(initData(&d_positionBase, Vec3(0, 0, 0), "positionBase", "Position of the device base in the SOFA scene world coordinates"))
     , d_orientationBase(initData(&d_orientationBase, Quat(0, 0, 0, 1), "orientationBase", "Orientation of the device base in the SOFA scene world coordinates"))
-    , d_drawDebug(initData(&d_drawDebug, false, "drawDebugForce", "Parameter to draw debug information"))
+    , d_drawDebug(initData(&d_drawDebug, false, "drawDebug", "Parameter to draw debug information"))
     , d_scale(initData(&d_scale, 1.0, "scale", "Default scale applied to the Device coordinates"))
-    , d_forceScale(initData(&d_forceScale, 1.0, "forceScale", "Default forceScale applied to the force feedback. "))
     , d_posDevice(initData(&d_posDevice, "positionDevice", "position of the base of the part of the device"))
     , l_forceFeedback(initLink("forceFeedBack", "link to the forceFeedBack component, if not set will search through graph and take first one encountered."))
 {
@@ -274,7 +273,9 @@ void Haply_Inverse3Controller::draw(const sofa::core::visual::VisualParams* vpar
     // If true draw debug information
     if (d_drawDebug.getValue())
     {
-
+        const Coord& posDevice = d_posDevice.getValue();
+        sofa::type::RGBAColor color4(1.0f, 0.0, 0.0f, 1.0);
+        vparams->drawTool()->drawSphere(posDevice.getCenter(), 1.0f, color4);
     }
 }
 
