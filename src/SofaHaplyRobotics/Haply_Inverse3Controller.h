@@ -30,9 +30,11 @@ class SOFA_HAPLYROBOTICS_API Haply_Inverse3Controller : public Controller
 public:
     SOFA_CLASS(Haply_Inverse3Controller, Controller);
 
-    using Coord = Vec1Types::Coord;
-    using VecCoord = Vec1Types::VecCoord;
-    using VecDeriv = Vec1Types::VecDeriv;
+    //using Coord = Vec1Types::Coord;
+    //using VecCoord = Vec1Types::VecCoord;
+    //using VecDeriv = Vec1Types::VecDeriv;
+    using Coord = sofa::defaulttype::RigidTypes::Coord;
+    using VecCoord = sofa::defaulttype::RigidTypes::VecCoord;
 
     using Vec3 = sofa::type::Vec3d;
     using Quat = sofa::type::Quat<SReal>;

@@ -11,6 +11,7 @@
 #include <sofa/simulation/AnimateBeginEvent.h>
 #include <sofa/simulation/AnimateEndEvent.h>
 
+#include <sofa/simulation/Node.h>
 #include <sofa/core/visual/VisualParams.h>
 #include <iomanip> 
 #include <sofa/core/ObjectFactory.h>
@@ -74,6 +75,24 @@ Haply_Inverse3Controller::~Haply_Inverse3Controller()
 void Haply_Inverse3Controller::init()
 {
     msg_info() << "Haply_Inverse3Controller::init()";
+    
+    // Retrieve ForceFeedback component pointer
+    if (l_forceFeedback.empty())
+    {
+        const simulation::Node* context = dynamic_cast<simulation::Node*>(this->getContext()); // access to current node
+        m_forceFeedback = context->get<ForceFeedback>(this->getTags(), sofa::core::objectmodel::BaseContext::SearchRoot);
+    }
+    else
+    {
+        m_forceFeedback = l_forceFeedback.get();
+    }
+
+    if (!m_forceFeedback.get())
+    {
+        msg_warning() << "No forceFeedBack component found in the scene. Only the motion of the haptic tool will be simulated.";
+    }
+
+
     initDevice();
 }
 
@@ -99,19 +118,8 @@ void Haply_Inverse3Controller::initDevice()
     m_deviceAPI = new Haply::HardwareAPI::Devices::Inverse3(m_stream);
 
     m_deviceAPI->SendDeviceWakeup();
+    //m_deviceAPI->SendEndEffectorForce();
     m_deviceAPI->ReceiveDeviceInfo();
-   // m_deviceAPI->ReceiveEndEffectorState();
-
-    //std::cout << std::endl << "press ENTER to continue";
-    //std::cin.get();
-
-    //while (true)
-    //{
-    //    inverse3.SendEndEffectorForce();
-    //    inverse3.ReceiveEndEffectorState();
-
-    //    std::this_thread::sleep_for(std::chrono::microseconds(100));
-    //}
 }
 
 
@@ -156,6 +164,10 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
     Haply_Inverse3Controller* _deviceCtrl = static_cast<Haply_Inverse3Controller*>(p_this);
     auto _deviceAPI = _deviceCtrl->m_deviceAPI;
 
+    if (_deviceCtrl->m_deviceAPI)
+        std::cout << "_deviceCtrl->m_deviceAPI: OK" << std::endl;
+
+
     // Loop Timer
     long targetSpeedLoop = 1; // Target loop speed: 1ms
 
@@ -173,12 +185,33 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
         summedLoopDuration += (startTime - startTimePrev);
         startTimePrev = startTime;
 
-        // loop over the devices
-        //for (auto device : m_devices) // mutex?
-        //{            
-        //    // Force feedback computation
-        //    
-        //}
+        // compute ForceFeedback
+        if (m_simulationStarted)
+        {
+            SReal currentForce[3] = { 0.0, 0.0, 0.0 };            
+            if (m_forceFeedback)
+            {
+                m_forceFeedback->computeForce(m_hapticData.position[0], m_hapticData.position[1], m_hapticData.position[2], 0, 0, 0, 0, currentForce[0], currentForce[1], currentForce[2]);
+            }
+
+            float force[3] = { float(currentForce[0]), float(currentForce[1]), float(currentForce[2]) };           
+            float position[3];
+            float velocity[3];
+            
+            // send computed forces
+            _deviceAPI->SendEndEffectorForce(force);
+
+            // retrieve device position
+            _deviceAPI->ReceiveEndEffectorState(position, velocity);
+
+            m_hapticData.position[0] = position[0];
+            m_hapticData.position[1] = position[1];
+            m_hapticData.position[2] = position[2];
+
+            //std::cout << "Position (x, y, z): " << position[0] << " | " << position[1] << " | " << position[2] << std::endl;
+            //std::cout << "Velocity (x, y, z): " << velocity[0] << " | " << velocity[1] << " | " << velocity[2] << std::endl;
+        }
+
 
         if (logThread)
         {
@@ -189,7 +222,6 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
                 summedLoopDuration = 0;
             }
         }
-
 
         ctime_t endTime = CTime::getRefTime();
         ctime_t duration = endTime - startTime;
@@ -242,9 +274,6 @@ void Haply_Inverse3Controller::CopyData(std::atomic<bool>& terminateCopy, void* 
 
 void Haply_Inverse3Controller::simulation_updatePosition()
 {
-    //msg_info() << "Haply_Inverse3Controller::simulation_updateData()";
-    //helper::WriteAccessor<Data<Coord> > position = d_posDevice;
-    
     Coord& posDevice = *d_posDevice.beginEdit();
     posDevice.getCenter() = Vec3(m_simuData.position[0], m_simuData.position[1], m_simuData.position[2]) * d_scale.getValue();
     posDevice.getOrientation() = Quat::identity();
