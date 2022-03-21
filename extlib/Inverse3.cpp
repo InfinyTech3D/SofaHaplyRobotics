@@ -57,7 +57,7 @@ void Haply::HardwareAPI::Devices::Inverse3::SendDeviceWakeup()
     this->WriteBytes(1);
 }
 
-void Haply::HardwareAPI::Devices::Inverse3::ReceiveDeviceInfo()
+void Haply::HardwareAPI::Devices::Inverse3::ReceiveDeviceInfo(bool dumpInfo)
 {
     uint16_t device_id;
     unsigned char device_model_num;
@@ -65,10 +65,10 @@ void Haply::HardwareAPI::Devices::Inverse3::ReceiveDeviceInfo()
     unsigned char firmware_version;
     float quaternion[4];
 
-    this->ReceiveDeviceInfo(&device_id, &device_model_num, &hardware_version, &firmware_version, quaternion);
+    this->ReceiveDeviceInfo(&device_id, &device_model_num, &hardware_version, &firmware_version, quaternion, dumpInfo);
 }
 
-void Haply::HardwareAPI::Devices::Inverse3::ReceiveDeviceInfo(uint16_t* device_id, unsigned char* device_model_number, unsigned char* hardware_version, unsigned char* firmware_version, float* quaternion)
+void Haply::HardwareAPI::Devices::Inverse3::ReceiveDeviceInfo(uint16_t* device_id, unsigned char* device_model_number, unsigned char* hardware_version, unsigned char* firmware_version, float* quaternion, bool dumpInfo)
 {
     const char hc = this->ReadHeaderCode();
 
@@ -88,16 +88,17 @@ void Haply::HardwareAPI::Devices::Inverse3::ReceiveDeviceInfo(uint16_t* device_i
     quaternion[2] = buffer_f[2];
     quaternion[3] = buffer_f[3];
 
-#if defined (_DEBUG)
-    std::cout << "Device ID: " << *device_id << "\n";
-    std::cout << "Device model number: " << (int)*device_model_number << "\n";
-    std::cout << "Hardware version: " << (int)*hardware_version << "\n";
-    std::cout << "Firmware version: " << (int)*firmware_version << "\n";
-    std::cout << "Quaternion x: " << buffer_f[0] << "\n";
-    std::cout << "Quaternion y: " << buffer_f[1] << "\n";
-    std::cout << "Quaternion z: " << buffer_f[2] << "\n";
-    std::cout << "Quaternion w: " << buffer_f[3] << "\n";
-#endif
+    if (dumpInfo)
+    {
+        std::cout << "Device ID: " << *device_id << "\n";
+        std::cout << "Device model number: " << (int)*device_model_number << "\n";
+        std::cout << "Hardware version: " << (int)*hardware_version << "\n";
+        std::cout << "Firmware version: " << (int)*firmware_version << "\n";
+        std::cout << "Quaternion x: " << buffer_f[0] << "\n";
+        std::cout << "Quaternion y: " << buffer_f[1] << "\n";
+        std::cout << "Quaternion z: " << buffer_f[2] << "\n";
+        std::cout << "Quaternion w: " << buffer_f[3] << "\n";
+    }
 }
 
 void Haply::HardwareAPI::Devices::Inverse3::SendJointTorques()
@@ -209,11 +210,7 @@ void Haply::HardwareAPI::Devices::Inverse3::ReceiveEndEffectorState(float* posit
     velocity[2] = buffer_f[5];
 
 #if defined (_DEBUG)
-    std::cout << "Position x: " << buffer_f[0] << "\n";
-    std::cout << "Position y: " << buffer_f[1] << "\n";
-    std::cout << "Position z: " << buffer_f[2] << "\n";
-    std::cout << "Velocity x: " << buffer_f[3] << "\n";
-    std::cout << "Velocity y: " << buffer_f[4] << "\n";
-    std::cout << "Velocity z: " << buffer_f[5] << "\n";
+    std::cout << "Position (x, y, z): " << buffer_f[0] << " | " << buffer_f[1] << " | " << buffer_f[2] << std::endl;
+    std::cout << "Velocity (x, y, z): " << buffer_f[3] << " | " << buffer_f[4] << " | " << buffer_f[5] << std::endl;
 #endif
 }

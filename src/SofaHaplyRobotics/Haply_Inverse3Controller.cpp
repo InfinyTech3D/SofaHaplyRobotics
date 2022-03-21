@@ -118,8 +118,8 @@ void Haply_Inverse3Controller::initDevice()
     m_deviceAPI = new Haply::HardwareAPI::Devices::Inverse3(m_stream);
 
     m_deviceAPI->SendDeviceWakeup();
-    //m_deviceAPI->SendEndEffectorForce();
-    m_deviceAPI->ReceiveDeviceInfo();
+    m_deviceAPI->SendEndEffectorForce();
+    m_deviceAPI->ReceiveDeviceInfo(true);
 }
 
 

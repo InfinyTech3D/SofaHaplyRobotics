@@ -26,8 +26,8 @@ namespace Haply
 
 				void SendDeviceWakeup();
 
-				void ReceiveDeviceInfo();
-				void ReceiveDeviceInfo(uint16_t* device_id, unsigned char* device_model_number, unsigned char* hardware_version, unsigned char* firmware_version, float* quaternion);
+				void ReceiveDeviceInfo(bool dumpInfo = false);
+				void ReceiveDeviceInfo(uint16_t* device_id, unsigned char* device_model_number, unsigned char* hardware_version, unsigned char* firmware_version, float* quaternion, bool dumpInfo = false);
 
 				void SendJointTorques();
 				void SendJointTorques(float* torques);
