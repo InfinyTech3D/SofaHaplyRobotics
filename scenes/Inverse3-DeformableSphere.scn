@@ -23,11 +23,8 @@
     <BVHNarrowPhase/>
     <DefaultContactManager name="response" response="FrictionContactConstraint" />
     <LocalMinDistance name="proximity" alarmDistance="0.1" contactDistance="0.01" angleCone="0.1" />
-    <!--<MinProximityIntersection name="Proximity" alarmDistance="0.5" contactDistance="0.01" />-->
     <FreeMotionAnimationLoop/>
-    
     <LCPConstraintSolver tolerance="0.001" maxIt="1000"/>
-    
     
     <Haply_Inverse3Controller name="Device" portName="COM8" scale="20.0" drawDebug="0" />
     <MechanicalObject template="Rigid3d" name="HaplyMO" position="@Device.positionDevice" />
