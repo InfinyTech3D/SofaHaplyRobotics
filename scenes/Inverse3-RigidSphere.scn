@@ -30,7 +30,7 @@
 	
     
     <Node name="RigidSphere">
-		<MeshOBJLoader name="loaderS" filename="mesh/sphere.obj" scale3d="1.5 1.5 1.5" translation="0 0 2" />
+		<MeshOBJLoader name="loaderS" filename="./mesh/sphere.obj" scale3d="1.5 1.5 1.5" translation="0 0 2" />
         <MechanicalObject position="@loaderS.position"/>
         <MeshTopology name="grid" src="@loaderS" />
 		
@@ -57,7 +57,7 @@
         <LinearSolverConstraintCorrection />
 		
 		<Node name="VisuTool" >
-            <MeshOBJLoader name="meshLoader_1" filename="mesh/sphere.obj"/>
+            <MeshOBJLoader name="meshLoader_1" filename="./mesh/sphere.obj"/>
             <OglModel name="InstrumentVisualModel" src="@meshLoader_1" color="0.0 1.0 0.0 1.0" />
             <RigidMapping name="MM->VM mapping" input="@instrumentState" output="@InstrumentVisualModel" />
         </Node>

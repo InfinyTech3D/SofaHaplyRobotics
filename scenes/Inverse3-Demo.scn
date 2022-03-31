@@ -12,15 +12,31 @@
 
 	<VisualStyle displayFlags="showVisualModels showBehaviorModels hideCollisionModels hideBoundingCollisionModels hideMappings hideMechanicalMappings hideForceFields hideInteractionForceFields hideWireframe hideNormals" />
 
-    <Haply_Inverse3Controller name="Device" portName="COM8" scale="100.0" drawDebug="1" />
-	<MechanicalObject template="Rigid3d" name="GeomagicMO" position="@Device.positionDevice" />
+    <Haply_Inverse3Controller name="Device" portName="COM8" scale="20.0" drawDebug="0" />
+    <MechanicalObject template="Rigid3d" name="HaplyMO" position="@Device.positionDevice" />
+	
+	<Node name="Instrument" >
+        <EulerImplicitSolver name="ODE solver" rayleighStiffness="0.01" rayleighMass="0.01" />
+        <SparseLDLSolver template="CompressedRowSparseMatrixd"/>
+        
+		<MechanicalObject name="instrumentState" template="Rigid3" />
+		<UniformMass name="mass" totalMass="1" />
+		
+		<RestShapeSpringsForceField stiffness='1000000' angularStiffness='1000000' external_rest_shape='@../HaplyMO' points='0' external_points='0'/>
+        <LCPForceFeedback name="LCPFF1" activate="true" forceCoef="0.001"/>
+        <LinearSolverConstraintCorrection />
+		
+		<Node name="VisuTool" >
+            <MeshOBJLoader name="meshLoader_1" filename="./mesh/sphere.obj"/>
+            <OglModel name="InstrumentVisualModel" src="@meshLoader_1" color="0.0 1.0 0.0 1.0" />
+            <RigidMapping name="MM->VM mapping" input="@instrumentState" output="@InstrumentVisualModel" />
+        </Node>
+		
 
-    <!-- Example of an instrument controlled with the Geomagic device -->
-    <Node name="mapping">
-        <MeshOBJLoader name="meshLoader_0" filename="mesh/dental_instrument.obj" handleSeams="1" scale3d="10 10 10"/>
-        <OglModel name="Visual" src="@meshLoader_0" color="red"  />
-        <!--<RigidMapping input="@.." output="@Visual" />-->
-    </Node>
-    
-
+        <Node name="CollisionModel" >
+            <MechanicalObject name="instrumentCollisionState" template="Vec3d" />
+            <SphereCollisionModel stiffness="10"/>
+            <RigidMapping name="MM->CM mapping" input="@instrumentState" output="@instrumentCollisionState" />		
+        </Node>
+    </Node> 
 </Node>

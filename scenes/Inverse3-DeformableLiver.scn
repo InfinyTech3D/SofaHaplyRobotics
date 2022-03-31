@@ -38,7 +38,7 @@
         <EulerImplicitSolver name="ODE solver" rayleighStiffness="0.1" rayleighMass="0.1" />
         <CGLinearSolver name="linear solver" iterations="25" tolerance="1e-10" threshold="10e-10" />
  
-        <MeshGmshLoader filename="mesh/liver2.msh" name="meshLoader" scale3d="4 4 4" rotation="0 20 90" translation="-2.5 0 0"/>
+        <MeshGmshLoader filename="./mesh/liver2.msh" name="meshLoader" scale3d="4 4 4" rotation="0 20 90" translation="-2.5 0 0"/>
         <MechanicalObject name="dofs" src="@meshLoader" />
 		<TetrahedronSetTopologyContainer name="TetraContainer" src="@meshLoader" />
         <TetrahedronSetTopologyModifier name="Modifier" />
@@ -68,7 +68,7 @@
     
 
     <Node name="Floor">
-        <MeshOBJLoader name="loaderF" filename="mesh/cube.obj" scale3d="10 10 0.2" translation="0 0 -2.2"/>
+        <MeshOBJLoader name="loaderF" filename="./mesh/cube.obj" scale3d="10 10 0.2" translation="0 0 -2.2"/>
         <MeshTopology src="@loaderF" />
         <MechanicalObject src="@loaderF" />
 
@@ -95,7 +95,7 @@
         <LinearSolverConstraintCorrection />
 		
 		<Node name="VisuTool" >
-            <MeshOBJLoader name="meshLoader_1" filename="mesh/sphere.obj" scale3d="0.5 0.5 0.5"/>
+            <MeshOBJLoader name="meshLoader_1" filename="./mesh/sphere.obj" scale3d="0.5 0.5 0.5"/>
             <OglModel name="InstrumentVisualModel" src="@meshLoader_1" color="0.0 1.0 0.0 1.0" />
             <RigidMapping name="MM->VM mapping" input="@instrumentState" output="@InstrumentVisualModel" />
         </Node>

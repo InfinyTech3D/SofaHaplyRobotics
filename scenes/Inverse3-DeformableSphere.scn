@@ -34,7 +34,7 @@
         <EulerImplicitSolver rayleighMass="0.01" rayleighStiffness="0.1" /> 
         <SparseLDLSolver template="CompressedRowSparseMatrixMat3x3d"/>
         
-        <MeshOBJLoader name="loaderS" filename="mesh/sphere_05.obj" scale3d="0.03 0.03 0.03" translation="0 0 2" />
+        <MeshOBJLoader name="loaderS" filename="./mesh/sphere_05.obj" scale3d="0.03 0.03 0.03" translation="0 0 2" />
         <SparseGridRamificationTopology name="grid" n="6 6 6" src="@./loaderS" nbVirtualFinerLevels="3" finestConnectivity="0"/>
         
         <MechanicalObject position="@grid.position"/>
@@ -79,7 +79,7 @@
         <LinearSolverConstraintCorrection />
 		
 		<Node name="VisuTool" >
-            <MeshOBJLoader name="meshLoader_1" filename="mesh/sphere.obj"/>
+            <MeshOBJLoader name="meshLoader_1" filename="./mesh/sphere.obj"/>
             <OglModel name="InstrumentVisualModel" src="@meshLoader_1" color="0.0 1.0 0.0 1.0" />
             <RigidMapping name="MM->VM mapping" input="@instrumentState" output="@InstrumentVisualModel" />
         </Node>
