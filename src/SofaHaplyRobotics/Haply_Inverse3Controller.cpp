@@ -164,7 +164,7 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
     Haply_Inverse3Controller* _deviceCtrl = static_cast<Haply_Inverse3Controller*>(p_this);
     auto _deviceAPI = _deviceCtrl->m_deviceAPI;
 
-    if (_deviceCtrl->m_deviceAPI)
+    if (_deviceAPI)
         std::cout << "_deviceCtrl->m_deviceAPI: OK" << std::endl;
 
 
@@ -188,18 +188,30 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
         // compute ForceFeedback
         if (m_simulationStarted)
         {
-            SReal currentForce[3] = { 0.0, 0.0, 0.0 };            
+            // 1. Get the current position of the tool in device frame
+            // as request is needed before retriving info. Start loop with saved position
+            Vec3 pos = { m_hapticData.position[0], m_hapticData.position[1], m_hapticData.position[2] };
+            
+            // 2. Compute the actual position of the tool in SOFA world
+            const Vec3& basePosition = _deviceCtrl->d_positionBase.getValue();
+            const Quat& baseOrientation = _deviceCtrl->d_orientationBase.getValue();
+            const SReal& scale = _deviceCtrl->d_scale.getValue();
+            
+            Vec3 posInSWorld = basePosition + baseOrientation.rotate(pos * scale);
+            Vec3 forceInSWorld = { 0.0f, 0.0f, 0.0f };
             if (m_forceFeedback)
             {
-                m_forceFeedback->computeForce(m_hapticData.position[0], m_hapticData.position[1], m_hapticData.position[2], 0, 0, 0, 0, currentForce[0], currentForce[1], currentForce[2]);
+                m_forceFeedback->computeForce(posInSWorld[0], posInSWorld[1], posInSWorld[2], 0, 0, 0, 0, forceInSWorld[0], forceInSWorld[1], forceInSWorld[2]);
             }
 
-            float force[3] = { float(currentForce[0]), float(currentForce[1]), float(currentForce[2]) };           
+            Vec3 forceInDevice = baseOrientation.inverseRotate(forceInSWorld);
+
+            float forceRaw[3] = { float(forceInDevice[0]), float(forceInDevice[1]), float(forceInDevice[2]) };
             float position[3];
             float velocity[3];
             
             // send computed forces
-            _deviceAPI->SendEndEffectorForce(force);
+            _deviceAPI->SendEndEffectorForce(forceRaw);
 
             // retrieve device position
             _deviceAPI->ReceiveEndEffectorState(position, velocity);
@@ -274,10 +286,16 @@ void Haply_Inverse3Controller::CopyData(std::atomic<bool>& terminateCopy, void* 
 
 void Haply_Inverse3Controller::simulation_updatePosition()
 {
-    Coord& posDevice = *d_posDevice.beginEdit();
-    posDevice.getCenter() = Vec3(m_simuData.position[0], m_simuData.position[1], m_simuData.position[2]) * d_scale.getValue();
-    posDevice.getOrientation() = Quat::identity();
-    d_posDevice.endEdit();
+    // get base position and orientation as well as device scale
+    const Vec3& positionBase = d_positionBase.getValue();
+    const Quat& orientationBase = d_orientationBase.getValue();
+    const SReal& scale = d_scale.getValue();
+    Vec3 position = { m_simuData.position[0], m_simuData.position[1], m_simuData.position[2] };
+
+    Coord& posDevice = sofa::helper::getWriteOnlyAccessor(d_posDevice);
+    posDevice.getCenter() = positionBase + orientationBase.rotate(position * scale);
+    posDevice.getOrientation() = orientationBase;
+
 }
 
 
