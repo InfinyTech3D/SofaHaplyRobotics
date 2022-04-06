@@ -84,7 +84,6 @@ public:
 
     Data<Vec3> d_positionBase; ///< Input Position of the device base in the scene world coordinates
     Data<Quat> d_orientationBase; ///< Input Orientation of the device base in the scene world coordinates
-
     Data<SReal> d_scale; ///< Default scale applied to the device Coordinates
 
     /// Data parameter to draw debug information
@@ -92,6 +91,13 @@ public:
 
     //Output Data
     Data<Coord> d_posDevice; ///< position of the base of the part of the device
+    Vec3 forceDevice;
+
+    Vec3 FullBBmins = { 10000, 10000, 10000 };
+    Vec3 FullBBmaxs = { -10000, -10000, -10000 };
+
+    Vec3 ToolBBmins = { 10000, 10000, 10000 };
+    Vec3 ToolBBmaxs = { -10000, -10000, -10000 };
 
     // Pointer to the forceFeedBack component
     ForceFeedback::SPtr m_forceFeedback;
@@ -104,6 +110,7 @@ public:
     struct DeviceData
     {
         float position[3];
+        Vec3 force;
         sofa::type::fixed_array<float, 3> motorValues;
     };
 
