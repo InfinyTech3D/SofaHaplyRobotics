@@ -60,7 +60,7 @@
         <EulerImplicitSolver rayleighMass="0.01" rayleighStiffness="0.1" /> 
         <SparseLDLSolver template="CompressedRowSparseMatrixMat3x3d"/>
         
-        <MeshOBJLoader name="loaderS" filename="mesh/sphere_05.obj" scale3d="0.05 0.05 0.05" translation="-3 -3 2" />
+        <MeshOBJLoader name="loaderS" filename="./mesh/sphere_05.obj" scale3d="0.05 0.05 0.05" translation="-3 -3 2" />
         <SparseGridRamificationTopology name="grid" n="6 6 6" src="@./loaderS" nbVirtualFinerLevels="3" finestConnectivity="0"/>
         
         <MechanicalObject name="gridDof" position="@grid.position"/>
@@ -94,7 +94,7 @@
 	
     
     <Node name="Floor">
-        <MeshOBJLoader name="loaderF" filename="mesh/cube.obj" scale3d="20 0.5 20" translation="0 0 -4" rotation="90 0 0"/>
+        <MeshOBJLoader name="loaderF" filename="./mesh/cube.obj" scale3d="20 0.5 20" translation="0 0 -4" rotation="90 0 0"/>
         <MeshTopology src="@loaderF" />
         <MechanicalObject src="@loaderF" />
         <TriangleCollisionModel simulated="0" moving="0" bothSide="false" group="1"/>

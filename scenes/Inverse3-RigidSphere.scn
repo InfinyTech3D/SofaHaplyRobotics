@@ -58,7 +58,7 @@
     
     
     <Node name="RigidSphere">
-		<MeshOBJLoader name="loaderS" filename="mesh/sphere.obj" scale3d="2 2 2" translation="-3 -3 2" />
+		<MeshOBJLoader name="loaderS" filename="./mesh/sphere.obj" scale3d="2 2 2" translation="-3 -3 2" />
         <MechanicalObject position="@loaderS.position"/>
         <MeshTopology name="grid" src="@loaderS" />
 		
@@ -72,7 +72,7 @@
     </Node>
 	
     <Node name="Floor">
-        <MeshOBJLoader name="loaderF" filename="mesh/cube.obj" scale3d="20 0.5 20" translation="0 0 -4" rotation="90 0 0"/>
+        <MeshOBJLoader name="loaderF" filename="./mesh/cube.obj" scale3d="20 0.5 20" translation="0 0 -4" rotation="90 0 0"/>
         <MeshTopology src="@loaderF" />
         <MechanicalObject src="@loaderF" />
         <TriangleCollisionModel simulated="0" moving="0" bothSide="false" group="1"/>
