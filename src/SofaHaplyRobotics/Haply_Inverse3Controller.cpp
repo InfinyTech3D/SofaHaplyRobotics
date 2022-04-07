@@ -24,7 +24,7 @@ namespace sofa::HaplyRobotics
 
 using namespace sofa::helper::system::thread;
 
-int Haply_Inverse3ControllerClass = core::RegisterObject("Driver allowing interfacing with Haptic Haply Robotics Inverse3 device.")
+const int Haply_Inverse3ControllerClass = core::RegisterObject("Driver allowing interfacing with Haptic Haply Robotics Inverse3 device.")
     .add< Haply_Inverse3Controller >()
     ;
 
@@ -41,7 +41,6 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     , l_forceFeedback(initLink("forceFeedBack", "link to the forceFeedBack component, if not set will search through graph and take first one encountered."))
 {
     this->f_listening.setValue(true);
-    this->f_printLog.setValue(true);
     
     d_hapticIdentity.setReadOnly(true);
 }
@@ -49,7 +48,7 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
 
 Haply_Inverse3Controller::~Haply_Inverse3Controller()
 {
-    std::cout << "~Haply_Inverse3Controller()" << std::endl;
+    msg_info() << "~Haply_Inverse3Controller()";
 
     if (logThread)
     {
@@ -96,9 +95,6 @@ void Haply_Inverse3Controller::init()
     FullBBmins = Vec3(-0.301056, -0.29919, -0.118068) * d_scale.getValue();
     FullBBmaxs = Vec3(0.285928, 0.16325, 0.377896) * d_scale.getValue();
 
-    ToolBBmins = Vec3(0, -0.370568, -2.35796) * d_scale.getValue();
-    ToolBBmaxs = Vec3(0.445835, 3.13465e-38, 2.95026e-38) * d_scale.getValue();
-
     initDevice();
 }
 
@@ -130,9 +126,7 @@ void Haply_Inverse3Controller::initDevice()
 
 
 void Haply_Inverse3Controller::clearDevice()
-{
-    msg_info() << "Haply_Inverse3Controller::clearDevice()";
-    
+{   
     if (m_deviceAPI != nullptr)
     {
         delete m_deviceAPI;
@@ -149,8 +143,6 @@ void Haply_Inverse3Controller::clearDevice()
 
 bool Haply_Inverse3Controller::createHapticThreads()
 {
-    msg_info() << "Haply_Inverse3Controller::createHapticThreads()";
-
     m_terminateHaptic = false;
     haptic_thread = std::thread(&Haply_Inverse3Controller::Haptics, this, std::ref(this->m_terminateHaptic), this);
     hapticLoopStarted = true;
@@ -170,8 +162,8 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
     Haply_Inverse3Controller* _deviceCtrl = static_cast<Haply_Inverse3Controller*>(p_this);
     auto _deviceAPI = _deviceCtrl->m_deviceAPI;
 
-    if (_deviceAPI)
-        std::cout << "_deviceCtrl->m_deviceAPI: OK" << std::endl;
+    if (logThread && _deviceAPI)
+        msg_info("HapticAvatar_HapticThreadManager") << "_deviceCtrl->m_deviceAPI: OK";
 
 
     // Loop Timer
@@ -225,11 +217,6 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
             m_hapticData.position[0] = position[0];
             m_hapticData.position[1] = position[1];
             m_hapticData.position[2] = position[2];
-
-            m_hapticData.force = forceInSWorld;
-
-            //std::cout << "Position (x, y, z): " << position[0] << " | " << position[1] << " | " << position[2] << std::endl;
-            //std::cout << "Velocity (x, y, z): " << velocity[0] << " | " << velocity[1] << " | " << velocity[2] << std::endl;
         }
 
 
@@ -271,8 +258,8 @@ void Haply_Inverse3Controller::CopyData(std::atomic<bool>& terminateCopy, void* 
     double speedTimerMs = 1000 / double(CTime::getRefTicksPerSec());
 
     ctime_t lastTime = CTime::getRefTime();
-    std::cout << "refTicksPerMs: " << refTicksPerMs << " targetTicksPerLoop: " << targetTicksPerLoop << std::endl;
     int cptLoop = 0;
+
     // Haptics Loop
     while (!terminateCopy)
     {
@@ -303,20 +290,6 @@ void Haply_Inverse3Controller::simulation_updatePosition()
     Coord& posDevice = sofa::helper::getWriteOnlyAccessor(d_posDevice);
     posDevice.getCenter() = positionBase + orientationBase.rotate(position * scale);
     posDevice.getOrientation() = orientationBase;
-
-    //for (int i = 0; i < 3; ++i)
-    //{
-    //    if (posDevice[i] < mins[i])
-    //        mins[i] = posDevice[i];
-
-    //    if (posDevice[i] > maxs[i])
-    //        maxs[i] = posDevice[i];
-    //}
-
-    //std::cout << "mins: " << mins << " | maxs: " << maxs << std::endl;
-
-    // for debug
-    forceDevice = m_simuData.force;
 }
 
 
@@ -341,14 +314,11 @@ void Haply_Inverse3Controller::draw(const sofa::core::visual::VisualParams* vpar
     // If true draw debug information
     if (d_drawDebug.getValue())
     {
-        const Coord& posDevice = d_posDevice.getValue();
-        sofa::type::RGBAColor color4(1.0f, 0.0, 0.0f, 1.0);
+        //const Coord& posDevice = d_posDevice.getValue();
+        //sofa::type::RGBAColor color4(1.0f, 0.0, 0.0f, 1.0);
         //vparams->drawTool()->drawSphere(posDevice.getCenter(), 1.0f, color4);
 
-        vparams->drawTool()->drawLine(posDevice.getCenter(), posDevice.getCenter() + forceDevice * 10, color4);
-
         vparams->drawTool()->drawBoundingBox(FullBBmins, FullBBmaxs);
-        //vparams->drawTool()->drawBoundingBox(ToolBBmins, ToolBBmaxs);
     }
 }
 

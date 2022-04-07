@@ -30,9 +30,6 @@ class SOFA_HAPLYROBOTICS_API Haply_Inverse3Controller : public Controller
 public:
     SOFA_CLASS(Haply_Inverse3Controller, Controller);
 
-    //using Coord = Vec1Types::Coord;
-    //using VecCoord = Vec1Types::VecCoord;
-    //using VecDeriv = Vec1Types::VecDeriv;
     using Coord = sofa::defaulttype::RigidTypes::Coord;
     using VecCoord = sofa::defaulttype::RigidTypes::VecCoord;
 
@@ -42,7 +39,7 @@ public:
     /// default constructor
     Haply_Inverse3Controller();
 
-    virtual ~Haply_Inverse3Controller();
+    ~Haply_Inverse3Controller() override;
 
     /// Component API 
     ///{
@@ -74,7 +71,7 @@ protected:
     /// Main method from the SOFA simulation call at each simulation step begin.
     void simulation_updatePosition();
    
-    void updateButtonStates() {}
+    void updateButtonStates() const {};
 
 public:
     /// Name of the port for this device
@@ -96,9 +93,6 @@ public:
     Vec3 FullBBmins = { 10000, 10000, 10000 };
     Vec3 FullBBmaxs = { -10000, -10000, -10000 };
 
-    Vec3 ToolBBmins = { 10000, 10000, 10000 };
-    Vec3 ToolBBmaxs = { -10000, -10000, -10000 };
-
     // Pointer to the forceFeedBack component
     ForceFeedback::SPtr m_forceFeedback;
     // link to the forceFeedBack component, if not set will search through graph and take first one encountered
@@ -110,7 +104,6 @@ public:
     struct DeviceData
     {
         float position[3];
-        Vec3 force;
         sofa::type::fixed_array<float, 3> motorValues;
     };
 
@@ -121,14 +114,14 @@ public:
 
     Haply::HardwareAPI::Devices::Inverse3* m_deviceAPI = nullptr;
 
-protected:
+private:
     /// Internal parameter to know if device is ready or not.
     bool m_deviceReady = false;
 
     bool hapticLoopStarted = false; ///< Bool to store the information is haptic thread is running or not.
     bool m_simulationStarted = false; ///< Bool to store the information that the simulation is running or not.
 
-    bool logThread = true;
+    bool logThread = false;
 
     /// Bool to notify thread to stop work
     std::atomic<bool> m_terminateHaptic = true;
