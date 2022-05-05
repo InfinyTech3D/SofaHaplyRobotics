@@ -117,6 +117,7 @@ public:
 private:
     /// Internal parameter to know if device is ready or not.
     bool m_deviceReady = false;
+    bool m_initDevice = false;
 
     bool hapticLoopStarted = false; ///< Bool to store the information is haptic thread is running or not.
     bool m_simulationStarted = false; ///< Bool to store the information that the simulation is running or not.

@@ -103,7 +103,9 @@ void Haply_Inverse3Controller::bwdInit()
 {
     msg_info() << "Haply_Inverse3Controller::bwdInit()";
 
-    m_deviceReady = createHapticThreads();
+    if (m_initDevice) {
+        m_deviceReady = createHapticThreads();
+    }
 }
 
 
@@ -117,11 +119,21 @@ void Haply_Inverse3Controller::initDevice()
     msg_info() << "PortName: " << portName;
     m_stream = new SerialStream(portName.c_str());
     
+    // check device connected
+    if (!m_stream->isConnected())
+    {
+        m_initDevice = false;
+        msg_error() <<"Opening device " << d_hapticIdentity.getValue() << " on port: " <<  portName << " failed and return code: (" << m_stream->errorConnection() << ")";
+        sofa::core::objectmodel::BaseObject::d_componentState.setValue(sofa::core::objectmodel::ComponentState::Invalid);
+        return;
+    }
+    
     m_deviceAPI = new Haply::HardwareAPI::Devices::Inverse3(m_stream);
-
     m_deviceAPI->SendDeviceWakeup();
     m_deviceAPI->SendEndEffectorForce();
     m_deviceAPI->ReceiveDeviceInfo(true);
+
+    m_initDevice = true;
 }
 
 
