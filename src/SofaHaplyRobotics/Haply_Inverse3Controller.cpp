@@ -38,6 +38,9 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     , d_scale(initData(&d_scale, 1.0, "scale", "Default scale applied to the Device coordinates"))
     , d_drawDebug(initData(&d_drawDebug, false, "drawDebug", "Parameter to draw debug information"))
     , d_posDevice(initData(&d_posDevice, "positionDevice", "position of the base of the part of the device"))
+    , d_rawForceDevice(initData(&d_rawForceDevice, "rawForceDevice", "For debug: raw values sent to the device in the device frame"))
+    , d_fullBBmins(initData(&d_fullBBmins, "fullBBmins", "min values of the BBox the tool cover in SOFA frame"))
+    , d_fullBBmaxs(initData(&d_fullBBmaxs, "fullBBmaxs", "max values of the BBox the tool cover in SOFA frame"))
     , l_forceFeedback(initLink("forceFeedBack", "link to the forceFeedBack component, if not set will search through graph and take first one encountered."))
 {
     this->f_listening.setValue(true);
@@ -92,8 +95,8 @@ void Haply_Inverse3Controller::init()
     }
 
     // Bounding box computed during execution
-    FullBBmins = Vec3(-0.301056, -0.29919, -0.118068) * d_scale.getValue();
-    FullBBmaxs = Vec3(0.285928, 0.16325, 0.377896) * d_scale.getValue();
+    d_fullBBmins.setValue(Vec3(-0.301056, -0.29919, -0.118068) * d_scale.getValue());
+    d_fullBBmaxs.setValue(Vec3(0.285928, 0.16325, 0.377896) * d_scale.getValue());
 
     initDevice();
 }
@@ -229,6 +232,9 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
             m_hapticData.position[0] = position[0];
             m_hapticData.position[1] = position[1];
             m_hapticData.position[2] = position[2];
+            m_hapticData.force[0] = forceRaw[0];
+            m_hapticData.force[1] = forceRaw[1];
+            m_hapticData.force[2] = forceRaw[2];
         }
 
 
@@ -302,6 +308,9 @@ void Haply_Inverse3Controller::simulation_updatePosition()
     Coord& posDevice = sofa::helper::getWriteOnlyAccessor(d_posDevice);
     posDevice.getCenter() = positionBase + orientationBase.rotate(position * scale);
     posDevice.getOrientation() = orientationBase;
+
+    // for debug dump rawforce
+    d_rawForceDevice.setValue(Vec3(m_simuData.force[0], m_simuData.force[1], m_simuData.force[2]));
 }
 
 
@@ -330,7 +339,7 @@ void Haply_Inverse3Controller::draw(const sofa::core::visual::VisualParams* vpar
         //sofa::type::RGBAColor color4(1.0f, 0.0, 0.0f, 1.0);
         //vparams->drawTool()->drawSphere(posDevice.getCenter(), 1.0f, color4);
 
-        vparams->drawTool()->drawBoundingBox(FullBBmins, FullBBmaxs);
+        vparams->drawTool()->drawBoundingBox(d_fullBBmins.getValue(), d_fullBBmaxs.getValue());
     }
 }
 

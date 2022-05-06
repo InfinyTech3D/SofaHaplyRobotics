@@ -88,10 +88,10 @@ public:
 
     //Output Data
     Data<Coord> d_posDevice; ///< position of the base of the part of the device
-    Vec3 forceDevice;
+    Data<Vec3> d_rawForceDevice;
 
-    Vec3 FullBBmins = { 10000, 10000, 10000 };
-    Vec3 FullBBmaxs = { -10000, -10000, -10000 };
+    Data<Vec3> d_fullBBmins;
+    Data<Vec3> d_fullBBmaxs;
 
     // Pointer to the forceFeedBack component
     ForceFeedback::SPtr m_forceFeedback;
@@ -104,7 +104,7 @@ public:
     struct DeviceData
     {
         float position[3];
-        sofa::type::fixed_array<float, 3> motorValues;
+        float force[3];
     };
 
     /// Data belonging to the haptic thread only
