@@ -8,19 +8,20 @@
 
 #include <SofaHaplyRobotics/config.h>
 #include <sofa/type/Vec.h>
-#include <SofaUserInteraction/Controller.h>
+#include <sofa/component/controller/Controller.h>
 #include <Inverse3.h>
 #include <SerialStream.h>
 #include <mutex>
 
 //force feedback
-#include <SofaHaptics/ForceFeedback.h>
+#include <sofa/component/haptics/ForceFeedback.h>
 
 namespace sofa::HaplyRobotics
 {
 using namespace sofa::defaulttype;
 using namespace sofa::simulation;
 using namespace sofa::component::controller;
+using namespace sofa::component::haptics;
 
 /**
 * Haptic driver

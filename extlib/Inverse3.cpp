@@ -44,8 +44,6 @@ void Haply::HardwareAPI::Devices::Inverse3::LogBytes(unsigned char* buffer, int 
 
 Haply::HardwareAPI::Devices::Inverse3::Inverse3(IO::Stream* stream)
 {
-    unsigned char r_buffer[1024];
-
     this->stream = stream;
     this->r_buffer = new unsigned char[1024];
     this->w_buffer = new unsigned char[1024];
