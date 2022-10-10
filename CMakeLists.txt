@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.12)
 project(SofaHaplyRobotics VERSION 0.1)
 
 find_package(Sofa.Component.Controller REQUIRED)
