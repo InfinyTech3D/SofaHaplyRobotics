@@ -4,6 +4,13 @@ project(SofaHaplyRobotics VERSION 0.1)
 find_package(Sofa.Component.Controller REQUIRED)
 find_package(Sofa.Component.Haptics REQUIRED)
 
+set(HAPLY_PREFIX "c:/Program Files/Haply/1.1.1"
+    CACHE PATH "Install folder for the SDK")
+
+## Required include and define directives for making use of the API.
+include_directories("${HAPLY_PREFIX}/include")
+add_definitions(-DUNICODE -D_UNICODE)
+
 set(SOFAHAPLYROBOTICS_SRC_DIR src/SofaHaplyRobotics)
 set(HEADER_FILES
     ${SOFAHAPLYROBOTICS_SRC_DIR}/config.h.in
@@ -36,7 +43,7 @@ add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES} ${README_FILE
 target_compile_definitions(${PROJECT_NAME} PRIVATE "-DSOFA_BUILD_SOFAHAPLYROBOTICS")
 
 # Link the plugin library to its dependencies (other libraries).
-target_link_libraries(${PROJECT_NAME} PUBLIC Sofa.Component.Controller Sofa.Component.Haptics)
+target_link_libraries(${PROJECT_NAME} PUBLIC Sofa.Component.Controller Sofa.Component.Haptics "${HAPLY_PREFIX}/lib/haply-rt.lib")
 
 target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>")
 target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/extlib>")

@@ -19,6 +19,8 @@
 #include <sofa/helper/system/thread/CTime.h>
 #include <chrono>
 
+#include "haply.hpp"
+
 namespace sofa::HaplyRobotics
 {
 
@@ -112,29 +114,76 @@ void Haply_Inverse3Controller::bwdInit()
 }
 
 
-
-
 void Haply_Inverse3Controller::initDevice()
 {
     msg_info() << "Haply_Inverse3Controller::initDevice()";
     const std::string& portName = d_portName.getValue();
 
     msg_info() << "PortName: " << portName;
-    m_stream = new SerialStream(portName.c_str());
-    
-    // check device connected
-    if (!m_stream->isConnected())
-    {
-        m_initDevice = false;
-        msg_error() <<"Opening device " << d_hapticIdentity.getValue() << " on port: " <<  portName << " failed and return code: (" << m_stream->errorConnection() << ")";
-        sofa::core::objectmodel::BaseObject::d_componentState.setValue(sofa::core::objectmodel::ComponentState::Invalid);
+    m_initDevice = false;
+
+
+    //return wallCheck();
+
+
+    haply::init();
+
+    haply::events events;
+    // Adds a callback for each time a new cursor position is received. In this
+    // case it prints out the position and velocity.
+    events.on_cursor = [](auto&, auto, auto& state) {
+        std::fprintf(stdout,
+            "\r"
+            "position_new=[ % 0.3f % 0.3f % 0.3f ] "
+            "velocity_new=[ % 0.3f % 0.3f % 0.3f ]",
+            state.position[0], state.position[1], state.position[2],
+            state.velocity[0], state.velocity[1], state.velocity[2]);
+    };
+
+
+    msg_info() << "haply::version(): " << haply::version();
+
+    m_client = new haply::client(/*std::move(events)*/);
+    auto ret = m_client->connect();
+    if (ret != haply_ok) {
+        msg_error() << "Unable to connect the client: " << haply::retstr_c(ret);
         return;
     }
-    
-    m_deviceAPI = new Haply::HardwareAPI::Devices::Inverse3(m_stream);
-    m_deviceAPI->SendDeviceWakeup();
-    m_deviceAPI->SendEndEffectorForce();
-    m_deviceAPI->ReceiveDeviceInfo(true);
+
+    std::vector<haply::device_id> list;
+    {
+        auto result = m_client->device_list();
+        if (!result) {
+            msg_error() << "Unable to list devices: " << haply::retstr_c(result.error());
+            return;
+        }
+        list = result.move();
+    }
+
+    ret = haply_ok;
+    msg_info() << "Device number: " << list.size();
+    for (auto id : list) 
+    {
+        auto result = m_client->latest(id);
+        if (!result) {
+            msg_error() << "Unable to retrieve device id: " << id << ", state: " << haply::retstr_c(result.error());
+            ret = result.error();
+            continue;
+        }
+
+        haply::latest latest = result.move();
+        auto deviceType = haply::is_inverse3(latest.device) ? "Inverse3" : "Handle";
+        auto isMock = latest.device.mock ? "yes" : "no";
+        msg_info() << "Device: " << deviceType << " with id: " << id
+            << " | tag: " << latest.device.tag_id
+            << " | mocks: " << isMock;
+    }
+
+    m_idDevice =
+        m_client->device_open_first(haply_device_type_inverse3)
+        .unwrap("Unable to connect Inverse3");
+
+    msg_info() << "Inverse3 id: " << m_idDevice;
 
     m_initDevice = true;
 }
@@ -152,6 +201,12 @@ void Haply_Inverse3Controller::clearDevice()
     {
         delete m_stream;
         m_stream = nullptr;
+    }
+
+    if (m_client != nullptr)
+    {
+        delete m_client;
+        m_client = nullptr;
     }
 }
 
@@ -172,14 +227,14 @@ bool Haply_Inverse3Controller::createHapticThreads()
 void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void* p_this)
 {
     if (logThread)
-        msg_warning("HapticAvatar_HapticThreadManager") << "Main Haptics thread created";
+        msg_warning("HapticAvatar_HapticThreadManager") << "Main Haptics thread created for id: " << m_idDevice;
 
     Haply_Inverse3Controller* _deviceCtrl = static_cast<Haply_Inverse3Controller*>(p_this);
     auto _deviceAPI = _deviceCtrl->m_deviceAPI;
 
-    if (logThread && _deviceAPI)
-        msg_info("HapticAvatar_HapticThreadManager") << "_deviceCtrl->m_deviceAPI: OK";
-
+    //if (logThread && _deviceAPI)
+    //    msg_info("HapticAvatar_HapticThreadManager") << "_deviceCtrl->m_deviceAPI: OK";
+    haply::client* hClient = _deviceCtrl->m_client;
 
     // Loop Timer
     long targetSpeedLoop = 1; // Target loop speed: 1ms
@@ -192,6 +247,12 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
     ctime_t startTimePrev = CTime::getRefTime();
     ctime_t summedLoopDuration = 0;
 
+    const Vec3& basePosition = _deviceCtrl->d_positionBase.getValue();
+    const Quat& baseOrientation = _deviceCtrl->d_orientationBase.getValue();
+    const SReal& scale = _deviceCtrl->d_scale.getValue();
+
+    haply::result<bool> result;
+ 
     while (!terminateHaptic)
     {
         ctime_t startTime = CTime::getRefTime();
@@ -202,14 +263,16 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
         if (m_simulationStarted)
         {
             // 1. Get the current position of the tool in device frame
-            // as request is needed before retriving info. Start loop with saved position
-            Vec3 pos = { m_hapticData.position[0], m_hapticData.position[1], m_hapticData.position[2] };
+            result = m_client->poll();
+            if (!result) {
+                msg_error() << "Unable to poll Inverse3: " << haply::retstr_c(result.error());
+            }
+
+            haply::result<haply::latest> resLatest = m_client->latest(m_idDevice);
+            const haply::latest& hLatest = resLatest.get();
+            Vec3 pos = { hLatest.state.cursor.position[0], hLatest.state.cursor.position[1], hLatest.state.cursor.position[2] };
             
-            // 2. Compute the actual position of the tool in SOFA world
-            const Vec3& basePosition = _deviceCtrl->d_positionBase.getValue();
-            const Quat& baseOrientation = _deviceCtrl->d_orientationBase.getValue();
-            const SReal& scale = _deviceCtrl->d_scale.getValue();
-            
+            // 2. Compute the actual position of the tool in SOFA world           
             Vec3 posInSWorld = basePosition + baseOrientation.rotate(pos * scale);
             Vec3 forceInSWorld = { 0.0f, 0.0f, 0.0f };
             if (m_forceFeedback)
@@ -220,31 +283,36 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
             Vec3 forceInDevice = baseOrientation.inverseRotate(forceInSWorld);
 
             float forceRaw[3] = { float(forceInDevice[0]), float(forceInDevice[1]), float(forceInDevice[2]) };
-            float position[3];
-            float velocity[3];
+            //float position[3];
+            //float velocity[3];
             
             // send computed forces
-            _deviceAPI->SendEndEffectorForce(forceRaw);
+            //_deviceAPI->SendEndEffectorForce(forceRaw);
 
             // retrieve device position
-            _deviceAPI->ReceiveEndEffectorState(position, velocity);
+            //_deviceAPI->ReceiveEndEffectorState(position, velocity);
 
-            m_hapticData.position[0] = position[0];
-            m_hapticData.position[1] = position[1];
-            m_hapticData.position[2] = position[2];
+            m_hapticData.position[0] = hLatest.state.cursor.position[0];
+            m_hapticData.position[1] = hLatest.state.cursor.position[1];
+            m_hapticData.position[2] = hLatest.state.cursor.position[2];
+
             m_hapticData.force[0] = forceRaw[0];
             m_hapticData.force[1] = forceRaw[1];
             m_hapticData.force[2] = forceRaw[2];
-        }
 
-
-        if (logThread)
-        {
-            cptLoop++;
-            if (cptLoop % 1000 == 0) {
-                float updateFreq = 1000 * 1000 / ((float)summedLoopDuration / (float)refTicksPerMs); // in Hz
-                std::cout << "DeviceName: " << " | Iteration: " << cptLoop << " | Average haptic loop frequency " << std::to_string(int(updateFreq)) << std::endl;
-                summedLoopDuration = 0;
+            if (logThread)
+            {
+                cptLoop++;
+                if (cptLoop % 1000 == 0) {
+                    //std::cout << "version: " << hLatest.version << " device: " << hLatest.device << 
+                    
+                    float updateFreq = 1000 * 1000 / ((float)summedLoopDuration / (float)refTicksPerMs); // in Hz
+                    std::cout << "Iter: " << cptLoop << " | Average haptic loop frequency " << std::to_string(int(updateFreq)) 
+                        << " | pos: [" << m_hapticData.position[0] << ", " << m_hapticData.position[1] << ", " << m_hapticData.position[2] << "]"
+                        << " | F: [" << m_hapticData.force[0] << ", " << m_hapticData.force[1] << ", " << m_hapticData.force[2] << "]"
+                        << std::endl;
+                    summedLoopDuration = 0;
+                }
             }
         }
 

@@ -12,6 +12,7 @@
 #include <Inverse3.h>
 #include <SerialStream.h>
 #include <mutex>
+#include "haply.hpp"
 
 //force feedback
 #include <sofa/component/haptics/ForceFeedback.h>
@@ -114,7 +115,9 @@ public:
     DeviceData m_simuData;
 
     Haply::HardwareAPI::Devices::Inverse3* m_deviceAPI = nullptr;
+    haply::client* m_client = nullptr;
 
+    haply::device_id m_idDevice;
 private:
     /// Internal parameter to know if device is ready or not.
     bool m_deviceReady = false;
@@ -123,7 +126,7 @@ private:
     bool hapticLoopStarted = false; ///< Bool to store the information is haptic thread is running or not.
     bool m_simulationStarted = false; ///< Bool to store the information that the simulation is running or not.
 
-    bool logThread = false;
+    bool logThread = true;
 
     /// Bool to notify thread to stop work
     std::atomic<bool> m_terminateHaptic = true;
