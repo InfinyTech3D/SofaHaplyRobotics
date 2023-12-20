@@ -122,28 +122,10 @@ void Haply_Inverse3Controller::initDevice()
     msg_info() << "PortName: " << portName;
     m_initDevice = false;
 
-
-    //return wallCheck();
-
-
     haply::init();
 
-    haply::events events;
-    // Adds a callback for each time a new cursor position is received. In this
-    // case it prints out the position and velocity.
-    events.on_cursor = [](auto&, auto, auto& state) {
-        std::fprintf(stdout,
-            "\r"
-            "position_new=[ % 0.3f % 0.3f % 0.3f ] "
-            "velocity_new=[ % 0.3f % 0.3f % 0.3f ]",
-            state.position[0], state.position[1], state.position[2],
-            state.velocity[0], state.velocity[1], state.velocity[2]);
-    };
-
-
     msg_info() << "haply::version(): " << haply::version();
-
-    m_client = new haply::client(/*std::move(events)*/);
+    m_client = new haply::client();
     auto ret = m_client->connect();
     if (ret != haply_ok) {
         msg_error() << "Unable to connect the client: " << haply::retstr_c(ret);
@@ -191,18 +173,6 @@ void Haply_Inverse3Controller::initDevice()
 
 void Haply_Inverse3Controller::clearDevice()
 {   
-    if (m_deviceAPI != nullptr)
-    {
-        delete m_deviceAPI;
-        m_deviceAPI = nullptr;
-    }
-
-    if (m_stream != nullptr)
-    {
-        delete m_stream;
-        m_stream = nullptr;
-    }
-
     if (m_client != nullptr)
     {
         delete m_client;
@@ -230,10 +200,7 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
         msg_warning("HapticAvatar_HapticThreadManager") << "Main Haptics thread created for id: " << m_idDevice;
 
     Haply_Inverse3Controller* _deviceCtrl = static_cast<Haply_Inverse3Controller*>(p_this);
-    auto _deviceAPI = _deviceCtrl->m_deviceAPI;
-
-    //if (logThread && _deviceAPI)
-    //    msg_info("HapticAvatar_HapticThreadManager") << "_deviceCtrl->m_deviceAPI: OK";
+    
     haply::client* hClient = _deviceCtrl->m_client;
 
     // Loop Timer

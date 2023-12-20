@@ -114,9 +114,7 @@ public:
     /// Data used in the copy thread to copy @sa m_hapticData into this data that can be used by simulation thread.
     DeviceData m_simuData;
 
-    Haply::HardwareAPI::Devices::Inverse3* m_deviceAPI = nullptr;
     haply::client* m_client = nullptr;
-
     haply::device_id m_idDevice;
 private:
     /// Internal parameter to know if device is ready or not.
@@ -126,7 +124,7 @@ private:
     bool hapticLoopStarted = false; ///< Bool to store the information is haptic thread is running or not.
     bool m_simulationStarted = false; ///< Bool to store the information that the simulation is running or not.
 
-    bool logThread = true;
+    bool logThread = false;
 
     /// Bool to notify thread to stop work
     std::atomic<bool> m_terminateHaptic = true;
@@ -136,9 +134,6 @@ private:
     std::thread haptic_thread;
 
     std::thread copy_thread;
-
-    SerialStream* m_stream;
-
 };
 
 } // namespace sofa::HaplyRobotics
