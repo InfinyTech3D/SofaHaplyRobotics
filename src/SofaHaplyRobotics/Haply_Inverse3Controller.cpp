@@ -208,7 +208,12 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
 
     // Use computer tick for timer
     ctime_t refTicksPerMs = CTime::getRefTicksPerSec() / 1000;
-    ctime_t targetTicksPerLoop = targetSpeedLoop * refTicksPerMs;
+    ctime_t targetTicksPerLoop = targetSpeedLoop * refTicksPerMs /4;
+    if (logThread)
+    {
+        std::cout << "refTicksPerMs: " << refTicksPerMs << std::endl;
+        std::cout << "targetTicksPerLoop: " << targetTicksPerLoop << std::endl;
+    }
 
     int cptLoop = 0;
     ctime_t startTimePrev = CTime::getRefTime();
@@ -231,13 +236,12 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
         {
             // 1. Get the current position of the tool in device frame
             result = m_client->poll();
-            if (!result) {
-                msg_error() << "Unable to poll Inverse3: " << haply::retstr_c(result.error());
-            }
+            haply::latest latest_handle = m_client->latest(m_idDevice).unwrap(
+                "Unable to retrieve handle state");
 
-            haply::result<haply::latest> resLatest = m_client->latest(m_idDevice);
-            const haply::latest& hLatest = resLatest.get();
-            Vec3 pos = { hLatest.state.cursor.position[0], hLatest.state.cursor.position[1], hLatest.state.cursor.position[2] };
+            bool button = latest_handle.state.handle.data.haply.button;
+
+            Vec3 pos = { latest_handle.state.cursor.position[0], latest_handle.state.cursor.position[1], latest_handle.state.cursor.position[2] };
             
             // 2. Compute the actual position of the tool in SOFA world           
             Vec3 posInSWorld = basePosition + baseOrientation.rotate(pos * scale);
@@ -249,31 +253,37 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
 
             Vec3 forceInDevice = baseOrientation.inverseRotate(forceInSWorld);
 
-            float forceRaw[3] = { float(forceInDevice[0]), float(forceInDevice[1]), float(forceInDevice[2]) };
-            //float position[3];
-            //float velocity[3];
-            
-            // send computed forces
-            //_deviceAPI->SendEndEffectorForce(forceRaw);
+            bool changed = false;
+            for (int i = 0; i < 3; ++i)
+            {
+                if (fabs(forceInDevice[i]) > 3.f) {
+                    forceInDevice[i] = 0.0f; 
+                    changed = true;
+                }
+            }
 
-            // retrieve device position
-            //_deviceAPI->ReceiveEndEffectorState(position, velocity);
+            if (changed)
+                std::cout << baseOrientation.inverseRotate(forceInSWorld) << std::endl;
 
-            m_hapticData.position[0] = hLatest.state.cursor.position[0];
-            m_hapticData.position[1] = hLatest.state.cursor.position[1];
-            m_hapticData.position[2] = hLatest.state.cursor.position[2];
+            // Send the current force value to the device
+            auto cursor_force = haply::make_cursor_force(forceInDevice[0], forceInDevice[1], forceInDevice[2]);
+            m_client->cursor_set_force(m_idDevice, cursor_force);
 
-            m_hapticData.force[0] = forceRaw[0];
-            m_hapticData.force[1] = forceRaw[1];
-            m_hapticData.force[2] = forceRaw[2];
+            m_hapticData.position[0] = latest_handle.state.cursor.position[0];
+            m_hapticData.position[1] = latest_handle.state.cursor.position[1];
+            m_hapticData.position[2] = latest_handle.state.cursor.position[2];
+
+            m_hapticData.force[0] = forceInDevice[0];
+            m_hapticData.force[1] = forceInDevice[1];
+            m_hapticData.force[2] = forceInDevice[2];
 
             if (logThread)
             {
                 cptLoop++;
-                if (cptLoop % 1000 == 0) {
-                    //std::cout << "version: " << hLatest.version << " device: " << hLatest.device << 
-                    
+                if (cptLoop % 1000 == 0) 
+                {
                     float updateFreq = 1000 * 1000 / ((float)summedLoopDuration / (float)refTicksPerMs); // in Hz
+                    std::cout << "summedLoopDuration: " << CTime::toSecond(summedLoopDuration) << std::endl;
                     std::cout << "Iter: " << cptLoop << " | Average haptic loop frequency " << std::to_string(int(updateFreq)) 
                         << " | pos: [" << m_hapticData.position[0] << ", " << m_hapticData.position[1] << ", " << m_hapticData.position[2] << "]"
                         << " | F: [" << m_hapticData.force[0] << ", " << m_hapticData.force[1] << ", " << m_hapticData.force[2] << "]"
@@ -305,10 +315,9 @@ void Haply_Inverse3Controller::CopyData(std::atomic<bool>& terminateCopy, void* 
     Haply_Inverse3Controller* _deviceCtrl = static_cast<Haply_Inverse3Controller*>(p_this);
 
     // Use computer tick for timer
-    ctime_t targetSpeedLoop = 1 / 2; // Target loop speed: 0.5ms
+    ctime_t targetSpeedLoop = 1 ; // Target loop speed: 0.5ms
     ctime_t refTicksPerMs = CTime::getRefTicksPerSec() / 1000;
-    ctime_t targetTicksPerLoop = targetSpeedLoop * refTicksPerMs;
-    double speedTimerMs = 1000 / double(CTime::getRefTicksPerSec());
+    ctime_t targetTicksPerLoop = targetSpeedLoop * refTicksPerMs / 4;
 
     ctime_t lastTime = CTime::getRefTime();
     int cptLoop = 0;
@@ -370,11 +379,14 @@ void Haply_Inverse3Controller::draw(const sofa::core::visual::VisualParams* vpar
     // If true draw debug information
     if (d_drawDebug.getValue())
     {
-        //const Coord& posDevice = d_posDevice.getValue();
-        //sofa::type::RGBAColor color4(1.0f, 0.0, 0.0f, 1.0);
-        //vparams->drawTool()->drawSphere(posDevice.getCenter(), 1.0f, color4);
-
+        const Coord& posDevice = d_posDevice.getValue();
+        vparams->drawTool()->drawFrame(posDevice.getCenter(), posDevice.getOrientation(), sofa::type::Vec3f(1.0f, 1.0f, 1.0f));
         vparams->drawTool()->drawBoundingBox(d_fullBBmins.getValue(), d_fullBBmaxs.getValue());
+
+        sofa::type::RGBAColor color4(1.0f, 0.0, 0.0f, 1.0);
+        const Vec3& force = d_rawForceDevice.getValue();
+        vparams->drawTool()->drawLine(posDevice.getCenter(), posDevice.getCenter() + force, color4);
+        
     }
 }
 
