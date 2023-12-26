@@ -202,6 +202,7 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
     Haply_Inverse3Controller* _deviceCtrl = static_cast<Haply_Inverse3Controller*>(p_this);
     
     haply::client* hClient = _deviceCtrl->m_client;
+    haply::thread thread{ *hClient };
 
     // Loop Timer
     long targetSpeedLoop = 1; // Target loop speed: 1ms
@@ -235,14 +236,14 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
         if (m_simulationStarted)
         {
             // 1. Get the current position of the tool in device frame
-            result = m_client->poll();
+            //result = m_client->poll();
             haply::latest latest_handle = m_client->latest(m_idDevice).unwrap(
                 "Unable to retrieve handle state");
 
             bool button = latest_handle.state.handle.data.haply.button;
 
             Vec3 pos = { latest_handle.state.cursor.position[0], latest_handle.state.cursor.position[1], latest_handle.state.cursor.position[2] };
-            
+
             // 2. Compute the actual position of the tool in SOFA world           
             Vec3 posInSWorld = basePosition + baseOrientation.rotate(pos * scale);
             Vec3 forceInSWorld = { 0.0f, 0.0f, 0.0f };
