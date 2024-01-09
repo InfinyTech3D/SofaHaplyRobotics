@@ -161,11 +161,14 @@ void Haply_Inverse3Controller::initDevice()
             << " | mocks: " << isMock;
     }
 
-    m_idDevice =
-        m_client->device_open_first(haply_device_type_inverse3)
+    m_idDevice = m_client->device_open_first(haply_device_type_inverse3)
         .unwrap("Unable to connect Inverse3");
 
+    m_idHandle = m_client->device_open_first(haply_device_type_handle)
+        .unwrap("Unable to connect Handle");
+
     msg_info() << "Inverse3 id: " << m_idDevice;
+    msg_info() << "Handle id: " << m_idHandle;
 
     m_initDevice = true;
 }
@@ -225,7 +228,7 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
     const SReal& scale = _deviceCtrl->d_scale.getValue();
 
     haply::result<bool> result;
- 
+
     while (!terminateHaptic)
     {
         ctime_t startTime = CTime::getRefTime();
@@ -236,22 +239,45 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
         if (m_simulationStarted)
         {
             // 1. Get the current position of the tool in device frame
-            //result = m_client->poll();
-            haply::latest latest_handle = m_client->latest(m_idDevice).unwrap(
+            haply::latest latest_inv3 = m_client->latest(m_idDevice).unwrap(
+                "Unable to retrieve cursor state");
+            auto position = latest_inv3.state.cursor.position;
+
+            // Read the latest_inv3 cached orientation quaternion and button
+            // state from the handle thread.
+            haply::latest latest_handle = m_client->latest(m_idHandle).unwrap(
                 "Unable to retrieve handle state");
 
             bool button = latest_handle.state.handle.data.haply.button;
+            
+            // Transform our quaternion into a direction vector representing
+// where the handle is pointing.
+            auto q = latest_handle.state.handle.quaternion;
 
-            Vec3 pos = { latest_handle.state.cursor.position[0], latest_handle.state.cursor.position[1], latest_handle.state.cursor.position[2] };
+            float s = 0.0;
+            for (int i=0; i<4; ++i)
+                s += q[i] * q[i];
+            s = 1 / s;
 
-            // 2. Compute the actual position of the tool in SOFA world           
+            // The handle quaternion has r,x,y,z order.
+            Vec3 dir;
+            static constexpr size_t r = 0, x = 1, y = 2, z = 3;
+            dir[0] = 2 * s * (q[x] * q[y] - q[z] * q[r]);
+            dir[1] = 1 - 2 * s * (q[x] * q[x] + q[z] * q[z]);
+            dir[2] = 2 * s * (q[y] * q[z] + q[x] * q[r]);
+
+            // 2. Compute the actual position of the tool in SOFA world
+            Vec3 pos = { position[0], position[1], position[2] };
             Vec3 posInSWorld = basePosition + baseOrientation.rotate(pos * scale);
             Vec3 forceInSWorld = { 0.0f, 0.0f, 0.0f };
+
+            // compute the forcefeedback given the current device position and 3D SOFA world constraints
             if (m_forceFeedback)
             {
                 m_forceFeedback->computeForce(posInSWorld[0], posInSWorld[1], posInSWorld[2], 0, 0, 0, 0, forceInSWorld[0], forceInSWorld[1], forceInSWorld[2]);
             }
 
+            // project the force in the device frame
             Vec3 forceInDevice = baseOrientation.inverseRotate(forceInSWorld);
 
             bool changed = false;
@@ -270,13 +296,30 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
             auto cursor_force = haply::make_cursor_force(forceInDevice[0], forceInDevice[1], forceInDevice[2]);
             m_client->cursor_set_force(m_idDevice, cursor_force);
 
-            m_hapticData.position[0] = latest_handle.state.cursor.position[0];
-            m_hapticData.position[1] = latest_handle.state.cursor.position[1];
-            m_hapticData.position[2] = latest_handle.state.cursor.position[2];
+            // Copy all data to the hapticData for further copy to SOFA Data 
+
+            //m_hapticData.position[0] = latest_handle.state.cursor.position[0];
+            //m_hapticData.position[1] = latest_handle.state.cursor.position[1];
+            //m_hapticData.position[2] = latest_handle.state.cursor.position[2];
+
+            m_hapticData.position[0] = position[0];
+            m_hapticData.position[1] = position[1];
+            m_hapticData.position[2] = position[2];
+
+            m_hapticData.orientation[0] = q[0];
+            m_hapticData.orientation[1] = q[1];
+            m_hapticData.orientation[2] = q[2];
+            m_hapticData.orientation[3] = q[3];
+
+            m_hapticData.dir[0] = dir[0];
+            m_hapticData.dir[1] = dir[1];
+            m_hapticData.dir[2] = dir[2];
 
             m_hapticData.force[0] = forceInDevice[0];
             m_hapticData.force[1] = forceInDevice[1];
             m_hapticData.force[2] = forceInDevice[2];
+            
+            m_hapticData.buttonStatus = button;
 
             if (logThread)
             {
@@ -287,8 +330,11 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
                     std::cout << "summedLoopDuration: " << CTime::toSecond(summedLoopDuration) << std::endl;
                     std::cout << "Iter: " << cptLoop << " | Average haptic loop frequency " << std::to_string(int(updateFreq)) 
                         << " | pos: [" << m_hapticData.position[0] << ", " << m_hapticData.position[1] << ", " << m_hapticData.position[2] << "]"
+                        //<< " | q: [" << latest_handle.state.handle.quaternion[0] << ", " << latest_handle.state.handle.quaternion[1] << ", " << latest_handle.state.handle.quaternion[2] << ", " << latest_handle.state.handle.quaternion[3] << "]"
+                        << " | q: [" << dir[0] << ", " << dir[1] << ", " << dir[2] << "]"
                         << " | F: [" << m_hapticData.force[0] << ", " << m_hapticData.force[1] << ", " << m_hapticData.force[2] << "]"
                         << std::endl;
+                    std::cout << "button: " << button << std::endl;
                     summedLoopDuration = 0;
                 }
             }
@@ -349,10 +395,15 @@ void Haply_Inverse3Controller::simulation_updatePosition()
     const Quat& orientationBase = d_orientationBase.getValue();
     const SReal& scale = d_scale.getValue();
     Vec3 position = { m_simuData.position[0], m_simuData.position[1], m_simuData.position[2] };
-
+    m_direction = { m_simuData.dir[0], m_simuData.dir[1], m_simuData.dir[2] };
+    m_direction *= 10;
+    m_toolStatus = m_simuData.buttonStatus;
+    Quat ori = { m_simuData.orientation[0], m_simuData.orientation[1], m_simuData.orientation[2], m_simuData.orientation[3] };
+    //ori.normalize();
     Coord& posDevice = sofa::helper::getWriteOnlyAccessor(d_posDevice);
     posDevice.getCenter() = positionBase + orientationBase.rotate(position * scale);
-    posDevice.getOrientation() = orientationBase;
+    //posDevice.getOrientation() = orientationBase;
+    posDevice.getOrientation() = orientationBase * ori;
 
     // for debug dump rawforce
     d_rawForceDevice.setValue(Vec3(m_simuData.force[0], m_simuData.force[1], m_simuData.force[2]));
@@ -385,8 +436,16 @@ void Haply_Inverse3Controller::draw(const sofa::core::visual::VisualParams* vpar
         vparams->drawTool()->drawBoundingBox(d_fullBBmins.getValue(), d_fullBBmaxs.getValue());
 
         sofa::type::RGBAColor color4(1.0f, 0.0, 0.0f, 1.0);
+        sofa::type::RGBAColor colorDir(0.0f, 1.0, 0.0f, 1.0);
+        if (m_toolStatus == true)
+        {
+            color4 = sofa::type::RGBAColor(0.0f, 0.0, 1.0f, 1.0);
+            colorDir = sofa::type::RGBAColor(0.0f, 0.0, 1.0f, 1.0);
+        }
         const Vec3& force = d_rawForceDevice.getValue();
         vparams->drawTool()->drawLine(posDevice.getCenter(), posDevice.getCenter() + force, color4);
+    
+        vparams->drawTool()->drawLine(posDevice.getCenter(), posDevice.getCenter() + m_direction, colorDir);
         
     }
 }
