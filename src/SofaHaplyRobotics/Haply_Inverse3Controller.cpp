@@ -254,22 +254,8 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
 
             bool button = latest_handle.state.handle.data.haply.button;
             
-            // Transform our quaternion into a direction vector representing
-// where the handle is pointing.
-            // device quaternion with components w, x, y, and z.
+            // The handle device quaternion with components w, x, y, and z.
             auto q = latest_handle.state.handle.quaternion;
-
-            float s = 0.0;
-            for (int i=0; i<4; ++i)
-                s += q[i] * q[i];
-            s = 1 / s;
-
-            // The handle quaternion has r,x,y,z order.
-            Vec3 dir;
-            static constexpr size_t r = 0, x = 1, y = 2, z = 3;
-            dir[0] = 2 * s * (q[x] * q[y] - q[z] * q[r]);
-            dir[1] = 1 - 2 * s * (q[x] * q[x] + q[z] * q[z]);
-            dir[2] = 2 * s * (q[y] * q[z] + q[x] * q[r]);
 
             // 2. Compute the actual position of the tool in SOFA world
             Vec3 pos = { position[0], position[1], position[2] };
@@ -326,7 +312,6 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
                     std::cout << "Iter: " << cptLoop << " | Average haptic loop frequency " << std::to_string(int(updateFreq)) 
                         << " | pos: [" << m_hapticData.position[0] << ", " << m_hapticData.position[1] << ", " << m_hapticData.position[2] << "]"
                         << " | q: [" << q[0] << ", " << q[1] << ", " << q[2] << ", " << q[3] << "]"
-                        << " | dir: [" << dir[0] << ", " << dir[1] << ", " << dir[2] << "]"
                         << " | F: [" << m_hapticData.force[0] << ", " << m_hapticData.force[1] << ", " << m_hapticData.force[2] << "]"
                         << std::endl;
 
@@ -424,6 +409,9 @@ void Haply_Inverse3Controller::draw(const sofa::core::visual::VisualParams* vpar
     // If true draw debug information
     if (!d_drawDebug.getValue())
         return;
+
+    // Debug: Draw device frames
+    vparams->drawTool()->drawFrame(d_positionBase.getValue(), d_orientationBase.getValue(), sofa::type::Vec3f(1.0f, 1.0f, 2.0f));
 
     // Debug: Draw end effector position as 3D axis
     const Coord& posDevice = d_posDevice.getValue();
