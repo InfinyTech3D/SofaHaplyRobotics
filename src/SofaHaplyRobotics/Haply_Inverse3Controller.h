@@ -9,9 +9,8 @@
 #include <SofaHaplyRobotics/config.h>
 #include <sofa/type/Vec.h>
 #include <sofa/component/controller/Controller.h>
-#include <Inverse3.h>
-#include <SerialStream.h>
 #include <mutex>
+#include "haply.hpp"
 
 //force feedback
 #include <sofa/component/haptics/ForceFeedback.h>
@@ -105,7 +104,10 @@ public:
     struct DeviceData
     {
         float position[3];
+        float orientation[4];
+        float dir[3];
         float force[3];
+        bool buttonStatus;
     };
 
     /// Data belonging to the haptic thread only
@@ -113,8 +115,9 @@ public:
     /// Data used in the copy thread to copy @sa m_hapticData into this data that can be used by simulation thread.
     DeviceData m_simuData;
 
-    Haply::HardwareAPI::Devices::Inverse3* m_deviceAPI = nullptr;
-
+    haply::client* m_client = nullptr;
+    haply::device_id m_idDevice;
+    haply::device_id m_idHandle;
 private:
     /// Internal parameter to know if device is ready or not.
     bool m_deviceReady = false;
@@ -123,7 +126,7 @@ private:
     bool hapticLoopStarted = false; ///< Bool to store the information is haptic thread is running or not.
     bool m_simulationStarted = false; ///< Bool to store the information that the simulation is running or not.
 
-    bool logThread = false;
+    bool logThread = true;
 
     /// Bool to notify thread to stop work
     std::atomic<bool> m_terminateHaptic = true;
@@ -131,11 +134,9 @@ private:
 
     /// haptic thread c++ object
     std::thread haptic_thread;
-
+    Vec3 m_direction;
+    bool m_toolStatus = false;
     std::thread copy_thread;
-
-    SerialStream* m_stream;
-
 };
 
 } // namespace sofa::HaplyRobotics
