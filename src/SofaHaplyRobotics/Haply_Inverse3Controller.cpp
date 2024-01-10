@@ -33,14 +33,17 @@ const int Haply_Inverse3ControllerClass = core::RegisterObject("Driver allowing 
 
 //constructeur
 Haply_Inverse3Controller::Haply_Inverse3Controller()
-    : d_portName(initData(&d_portName, std::string("COM8"), "portName", "Name of the port used by this device"))
-    , d_hapticIdentity(initData(&d_hapticIdentity, "hapticIdentity", "Data to store Information received by HW device"))
+    : d_hapticIdentity(initData(&d_hapticIdentity, "hapticIdentity", "Data to store Information received by HW device"))
     , d_positionBase(initData(&d_positionBase, Vec3(0, 0, 0), "positionBase", "Position of the device base in the SOFA scene world coordinates"))
     , d_orientationBase(initData(&d_orientationBase, Quat(0, 0, 0, 1), "orientationBase", "Orientation of the device base in the SOFA scene world coordinates"))    
-    , d_scale(initData(&d_scale, 1.0, "scale", "Default scale applied to the Device coordinates"))
-    , d_drawDebug(initData(&d_drawDebug, false, "drawDebug", "Parameter to draw debug information"))
-    , d_posDevice(initData(&d_posDevice, "positionDevice", "position of the base of the part of the device"))
+    , d_scale(initData(&d_scale, 1.0, "scale", "Default scale applied to the Device coordinates"))    
+    
+    , d_handleButton(initData(&d_handleButton, false, "handleButton", "Bool value showing if handle button is pressed"))
+    , d_posDevice(initData(&d_posDevice, "positionDevice", "position of the device end-effector in SOFA frame"))
     , d_rawForceDevice(initData(&d_rawForceDevice, "rawForceDevice", "For debug: raw values sent to the device in the device frame"))
+    
+    , d_drawDebug(initData(&d_drawDebug, false, "drawDebug", "Parameter to draw debug information"))
+
     , d_fullBBmins(initData(&d_fullBBmins, "fullBBmins", "min values of the BBox the tool cover in SOFA frame"))
     , d_fullBBmaxs(initData(&d_fullBBmaxs, "fullBBmaxs", "max values of the BBox the tool cover in SOFA frame"))
     , l_forceFeedback(initLink("forceFeedBack", "link to the forceFeedBack component, if not set will search through graph and take first one encountered."))
@@ -48,6 +51,14 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     this->f_listening.setValue(true);
     
     d_hapticIdentity.setReadOnly(true);
+    d_hapticIdentity.setGroup("Infos");
+
+    d_posDevice.setReadOnly(true);
+    d_handleButton.setReadOnly(true);
+    d_rawForceDevice.setReadOnly(true);
+    d_posDevice.setGroup("Device Status");
+    d_handleButton.setGroup("Device Status");
+    d_rawForceDevice.setGroup("Device Status");
 }
 
 
@@ -110,59 +121,66 @@ void Haply_Inverse3Controller::bwdInit()
 
 void Haply_Inverse3Controller::initDevice()
 {
-    const std::string& portName = d_portName.getValue();
-
     m_initDevice = false;
 
+    // Create the Haply client
     haply::init();
-    
+
     m_client = std::make_unique <haply::client>();
+    
+    // Connect to the Haply service
     auto ret = m_client->connect();
     if (ret != haply_ok) {
         msg_error() << "Unable to connect the client: " << haply::retstr_c(ret);
         return;
     }
 
-    std::vector<haply::device_id> list;
+    // parse the list of devices and print info
+    if (f_printLog.getValue())
     {
-        auto result = m_client->device_list();
-        if (!result) {
-            msg_error() << "Unable to list devices: " << haply::retstr_c(result.error());
-            return;
-        }
-        list = result.move();
-    }
-
-    ret = haply_ok;
-    
-    for (auto id : list) 
-    {
-        auto result = m_client->latest(id);
-        if (!result) {
-            msg_error() << "Unable to retrieve device id: " << id << ", state: " << haply::retstr_c(result.error());
-            ret = result.error();
-            continue;
+        std::vector<haply::device_id> list;
+        {
+            auto result = m_client->device_list();
+            if (!result) {
+                msg_error() << "Unable to list devices: " << haply::retstr_c(result.error());
+                return;
+            }
+            list = result.move();
         }
 
-        haply::latest latest = result.move();
-        auto deviceType = haply::is_inverse3(latest.device) ? "Inverse3" : "Handle";
-        auto isMock = latest.device.mock ? "yes" : "no";
-        msg_info() << "Device: " << deviceType << " with id: " << id
-            << " | tag: " << latest.device.tag_id
-            << " | mocks: " << isMock;
+        ret = haply_ok;
+        msg_info() << "Device number: " << list.size();
+        for (auto id : list)
+        {
+            auto result = m_client->latest(id);
+            if (!result) {
+                msg_error() << "Unable to retrieve device id: " << id << ", state: " << haply::retstr_c(result.error());
+                ret = result.error();
+                continue;
+            }
+
+            haply::latest latest = result.move();
+            auto deviceType = haply::is_inverse3(latest.device) ? "Inverse3" : "Handle";
+            auto isMock = latest.device.mock ? "yes" : "no";
+            msg_info() << "Device: " << deviceType << " with id: " << id
+                << " | tag: " << latest.device.tag_id
+                << " | mocks: " << isMock;
+        }
     }
 
+    // Get the device ids
     m_idDevice = m_client->device_open_first(haply_device_type_inverse3)
         .unwrap("Unable to connect Inverse3");
 
     m_idHandle = m_client->device_open_first(haply_device_type_handle)
         .unwrap("Unable to connect Handle");
 
-    msg_info() << "haply::version(): " << haply::version();
-    msg_info() << "Device number: " << list.size();
-    msg_info() << "Inverse3 id: " << m_idDevice;
-    msg_info() << "Handle id: " << m_idHandle;
+    std::ostringstream oss;
+    oss << "haply::version: " << haply::version() << " | Inverse3 ID : " << m_idDevice << " | Handle ID : " << m_idHandle;
+    msg_info() << oss.str();
+    d_hapticIdentity.setValue(oss.str());
 
+    // set initDevice to true if Haply client and devices have well be initialized
     m_initDevice = true;
 }
 
@@ -378,7 +396,9 @@ void Haply_Inverse3Controller::simulation_updatePosition()
     Vec3 position = { m_simuData.position[0], m_simuData.position[1], m_simuData.position[2] };
     m_direction = { m_simuData.dir[0], m_simuData.dir[1], m_simuData.dir[2] };
     m_direction *= 10;
-    m_toolStatus = m_simuData.buttonStatus;
+    
+    d_handleButton.setValue(m_simuData.buttonStatus);
+
     Quat ori = { m_simuData.orientation[0], m_simuData.orientation[1], m_simuData.orientation[2], m_simuData.orientation[3] };
     //ori.normalize();
     Coord& posDevice = sofa::helper::getWriteOnlyAccessor(d_posDevice);
@@ -411,25 +431,25 @@ void Haply_Inverse3Controller::draw(const sofa::core::visual::VisualParams* vpar
         return;
 
     // If true draw debug information
-    if (d_drawDebug.getValue())
-    {
-        const Coord& posDevice = d_posDevice.getValue();
-        vparams->drawTool()->drawFrame(posDevice.getCenter(), posDevice.getOrientation(), sofa::type::Vec3f(1.0f, 1.0f, 1.0f));
-        vparams->drawTool()->drawBoundingBox(d_fullBBmins.getValue(), d_fullBBmaxs.getValue());
+    if (!d_drawDebug.getValue())
+        return;
 
-        sofa::type::RGBAColor color4(1.0f, 0.0, 0.0f, 1.0);
-        sofa::type::RGBAColor colorDir(0.0f, 1.0, 0.0f, 1.0);
-        if (m_toolStatus == true)
-        {
-            color4 = sofa::type::RGBAColor(0.0f, 0.0, 1.0f, 1.0);
-            colorDir = sofa::type::RGBAColor(0.0f, 0.0, 1.0f, 1.0);
-        }
-        const Vec3& force = d_rawForceDevice.getValue();
-        vparams->drawTool()->drawLine(posDevice.getCenter(), posDevice.getCenter() + force, color4);
-    
-        vparams->drawTool()->drawLine(posDevice.getCenter(), posDevice.getCenter() + m_direction, colorDir);
+    const Coord& posDevice = d_posDevice.getValue();
+    vparams->drawTool()->drawFrame(posDevice.getCenter(), posDevice.getOrientation(), sofa::type::Vec3f(1.0f, 1.0f, 1.0f));
+    vparams->drawTool()->drawBoundingBox(d_fullBBmins.getValue(), d_fullBBmaxs.getValue());
+
+    sofa::type::RGBAColor color4(1.0f, 0.0, 0.0f, 1.0);
+    sofa::type::RGBAColor colorDir(0.0f, 1.0, 0.0f, 1.0);
         
+    if (d_handleButton.getValue())
+    {
+        color4 = sofa::type::RGBAColor(0.0f, 0.0, 1.0f, 1.0);
+        colorDir = sofa::type::RGBAColor(0.0f, 0.0, 1.0f, 1.0);
     }
+    const Vec3& force = d_rawForceDevice.getValue();
+    vparams->drawTool()->drawLine(posDevice.getCenter(), posDevice.getCenter() + force, color4);
+    
+    vparams->drawTool()->drawLine(posDevice.getCenter(), posDevice.getCenter() + m_direction, colorDir);
 }
 
 } // namespace sofa::HaplyRobotics

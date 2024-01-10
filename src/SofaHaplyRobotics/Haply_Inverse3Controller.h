@@ -74,8 +74,6 @@ protected:
     void updateButtonStates() const {};
 
 public:
-    /// Name of the port for this device
-    Data<std::string> d_portName; 
     /// Data to store Information received by HW device
     Data<std::string> d_hapticIdentity;
 
@@ -83,12 +81,13 @@ public:
     Data<Quat> d_orientationBase; ///< Input Orientation of the device base in the scene world coordinates
     Data<SReal> d_scale; ///< Default scale applied to the device Coordinates
 
+    /// Output Data
+    Data<bool> d_handleButton; ///< Bool value showing if handle button is pressed
+    Data<Coord> d_posDevice; ///< position of the device end-effector in SOFA Frame. Take into account @sa d_positionBase, @sa d_orientationBase and @sa d_scale
+    Data<Vec3> d_rawForceDevice; ///< For debug: raw values sent to the device in the device frame
+
     /// Data parameter to draw debug information
     Data<bool> d_drawDebug;
-
-    //Output Data
-    Data<Coord> d_posDevice; ///< position of the base of the part of the device
-    Data<Vec3> d_rawForceDevice;
 
     Data<Vec3> d_fullBBmins;
     Data<Vec3> d_fullBBmaxs;
@@ -135,7 +134,6 @@ private:
     /// haptic thread c++ object
     std::thread haptic_thread;
     Vec3 m_direction;
-    bool m_toolStatus = false;
     std::thread copy_thread;
 };
 
