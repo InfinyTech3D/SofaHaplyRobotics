@@ -53,8 +53,6 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
 
 Haply_Inverse3Controller::~Haply_Inverse3Controller()
 {
-    msg_info() << "~Haply_Inverse3Controller()";
-
     if (logThread)
     {
         msg_warning("HapticAvatar_HapticThreadManager") << "kill s_hapticThread";
@@ -78,8 +76,6 @@ Haply_Inverse3Controller::~Haply_Inverse3Controller()
 //executed once at the start of Sofa, initialization of all variables excepts haptics-related ones
 void Haply_Inverse3Controller::init()
 {
-    msg_info() << "Haply_Inverse3Controller::init()";
-    
     // Retrieve ForceFeedback component pointer
     if (l_forceFeedback.empty())
     {
@@ -106,8 +102,6 @@ void Haply_Inverse3Controller::init()
 
 void Haply_Inverse3Controller::bwdInit()
 {
-    msg_info() << "Haply_Inverse3Controller::bwdInit()";
-
     if (m_initDevice) {
         m_deviceReady = createHapticThreads();
     }
@@ -116,15 +110,12 @@ void Haply_Inverse3Controller::bwdInit()
 
 void Haply_Inverse3Controller::initDevice()
 {
-    msg_info() << "Haply_Inverse3Controller::initDevice()";
     const std::string& portName = d_portName.getValue();
 
-    msg_info() << "PortName: " << portName;
     m_initDevice = false;
 
     haply::init();
-
-    msg_info() << "haply::version(): " << haply::version();
+    
     m_client = new haply::client();
     auto ret = m_client->connect();
     if (ret != haply_ok) {
@@ -143,7 +134,7 @@ void Haply_Inverse3Controller::initDevice()
     }
 
     ret = haply_ok;
-    msg_info() << "Device number: " << list.size();
+    
     for (auto id : list) 
     {
         auto result = m_client->latest(id);
@@ -167,6 +158,8 @@ void Haply_Inverse3Controller::initDevice()
     m_idHandle = m_client->device_open_first(haply_device_type_handle)
         .unwrap("Unable to connect Handle");
 
+    msg_info() << "haply::version(): " << haply::version();
+    msg_info() << "Device number: " << list.size();
     msg_info() << "Inverse3 id: " << m_idDevice;
     msg_info() << "Handle id: " << m_idHandle;
 
@@ -297,11 +290,6 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
             m_client->cursor_set_force(m_idDevice, cursor_force);
 
             // Copy all data to the hapticData for further copy to SOFA Data 
-
-            //m_hapticData.position[0] = latest_handle.state.cursor.position[0];
-            //m_hapticData.position[1] = latest_handle.state.cursor.position[1];
-            //m_hapticData.position[2] = latest_handle.state.cursor.position[2];
-
             m_hapticData.position[0] = position[0];
             m_hapticData.position[1] = position[1];
             m_hapticData.position[2] = position[2];
@@ -331,10 +319,10 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
                     std::cout << "Iter: " << cptLoop << " | Average haptic loop frequency " << std::to_string(int(updateFreq)) 
                         << " | pos: [" << m_hapticData.position[0] << ", " << m_hapticData.position[1] << ", " << m_hapticData.position[2] << "]"
                         //<< " | q: [" << latest_handle.state.handle.quaternion[0] << ", " << latest_handle.state.handle.quaternion[1] << ", " << latest_handle.state.handle.quaternion[2] << ", " << latest_handle.state.handle.quaternion[3] << "]"
-                        << " | q: [" << dir[0] << ", " << dir[1] << ", " << dir[2] << "]"
+                        << " | q: [" << q[0] << ", " << q[1] << ", " << q[2] << ", " << q[3] << "]"
                         << " | F: [" << m_hapticData.force[0] << ", " << m_hapticData.force[1] << ", " << m_hapticData.force[2] << "]"
                         << std::endl;
-                    std::cout << "button: " << button << std::endl;
+
                     summedLoopDuration = 0;
                 }
             }
@@ -403,6 +391,7 @@ void Haply_Inverse3Controller::simulation_updatePosition()
     Coord& posDevice = sofa::helper::getWriteOnlyAccessor(d_posDevice);
     posDevice.getCenter() = positionBase + orientationBase.rotate(position * scale);
     //posDevice.getOrientation() = orientationBase;
+
     posDevice.getOrientation() = orientationBase * ori;
 
     // for debug dump rawforce
