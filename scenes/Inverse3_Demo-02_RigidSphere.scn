@@ -35,7 +35,7 @@
     <FreeMotionAnimationLoop/>
     <LCPConstraintSolver tolerance="0.001" maxIt="1000"/>
  
-    <Haply_Inverse3Controller name="Device" portName="COM4" scale="30.0" drawDebug="1" />
+    <Haply_Inverse3Controller name="Device" portName="COM4" scale="30.0" />
     <MechanicalObject template="Rigid3d" name="HaplyMO" position="@Device.positionDevice" />
 	
     	<Node name="Instrument" >
@@ -50,15 +50,19 @@
         <LinearSolverConstraintCorrection />
 		
 		<Node name="VisuTool" >
-            <MeshOBJLoader name="meshLoader_1" filename="./mesh/sphere.obj"/>
-            <OglModel name="InstrumentVisualModel" src="@meshLoader_1" color="0.0 1.0 0.0 1.0" />
+            <MeshOBJLoader name="meshLoader_1" filename="Demos/Dentistry/data/mesh/dental_instrument.obj" handleSeams="1"
+                rotation="-90 -90 0" translation="0 -3.5 0.3"/>
+            <OglModel name="InstrumentVisualModel" src="@meshLoader_1" color="1.0 0.2 0.2 1.0" />
             <RigidMapping name="MM->VM mapping" input="@instrumentState" output="@InstrumentVisualModel" />
         </Node>
-		
 
         <Node name="CollisionModel" >
-            <MechanicalObject name="instrumentCollisionState" template="Vec3d" />
-            <SphereCollisionModel />
+            <MeshOBJLoader name="loader" filename="Demos/Dentistry/data/mesh/dental_instrument_centerline.obj" 
+                rotation="@../VisuTool/meshLoader_1.rotation" translation="@../VisuTool/meshLoader_1.translation"/>
+            <MeshTopology src="@loader" name="InstrumentCollisionModel" />
+            <MechanicalObject src="@loader" name="instrumentCollisionState" />
+            <LineCollisionModel />			
+            <PointCollisionModel />
             <RigidMapping name="MM->CM mapping" input="@instrumentState" output="@instrumentCollisionState" />		
         </Node>
     </Node> 
