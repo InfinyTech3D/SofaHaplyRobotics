@@ -73,7 +73,7 @@ Haply_Inverse3Controller::~Haply_Inverse3Controller()
     clearDevice();
 }
 
-//executed once at the start of Sofa, initialization of all variables excepts haptics-related ones
+
 void Haply_Inverse3Controller::init()
 {
     // Retrieve ForceFeedback component pointer
@@ -116,7 +116,7 @@ void Haply_Inverse3Controller::initDevice()
 
     haply::init();
     
-    m_client = new haply::client();
+    m_client = std::make_unique <haply::client>();
     auto ret = m_client->connect();
     if (ret != haply_ok) {
         msg_error() << "Unable to connect the client: " << haply::retstr_c(ret);
@@ -169,11 +169,7 @@ void Haply_Inverse3Controller::initDevice()
 
 void Haply_Inverse3Controller::clearDevice()
 {   
-    if (m_client != nullptr)
-    {
-        delete m_client;
-        m_client = nullptr;
-    }
+
 }
 
 
@@ -195,10 +191,9 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
     if (logThread)
         msg_warning("HapticAvatar_HapticThreadManager") << "Main Haptics thread created for id: " << m_idDevice;
 
-    Haply_Inverse3Controller* _deviceCtrl = static_cast<Haply_Inverse3Controller*>(p_this);
+    auto _deviceCtrl = static_cast<Haply_Inverse3Controller*>(p_this);
     
-    haply::client* hClient = _deviceCtrl->m_client;
-    haply::thread thread{ *hClient };
+    haply::thread thread{ *_deviceCtrl->m_client };
 
     // Loop Timer
     long targetSpeedLoop = 1; // Target loop speed: 1ms
@@ -315,11 +310,10 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
                 if (cptLoop % 1000 == 0) 
                 {
                     float updateFreq = 1000 * 1000 / ((float)summedLoopDuration / (float)refTicksPerMs); // in Hz
-                    std::cout << "summedLoopDuration: " << CTime::toSecond(summedLoopDuration) << std::endl;
                     std::cout << "Iter: " << cptLoop << " | Average haptic loop frequency " << std::to_string(int(updateFreq)) 
                         << " | pos: [" << m_hapticData.position[0] << ", " << m_hapticData.position[1] << ", " << m_hapticData.position[2] << "]"
-                        //<< " | q: [" << latest_handle.state.handle.quaternion[0] << ", " << latest_handle.state.handle.quaternion[1] << ", " << latest_handle.state.handle.quaternion[2] << ", " << latest_handle.state.handle.quaternion[3] << "]"
                         << " | q: [" << q[0] << ", " << q[1] << ", " << q[2] << ", " << q[3] << "]"
+                        << " | dir: [" << dir[0] << ", " << dir[1] << ", " << dir[2] << "]"
                         << " | F: [" << m_hapticData.force[0] << ", " << m_hapticData.force[1] << ", " << m_hapticData.force[2] << "]"
                         << std::endl;
 
@@ -332,7 +326,6 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
         ctime_t duration = endTime - startTime;
 
         // If loop is quicker than the target loop speed. Wait here.
-        //duration = 0;
         while (duration < targetTicksPerLoop)
         {
             endTime = CTime::getRefTime();
@@ -347,7 +340,7 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
 
 void Haply_Inverse3Controller::CopyData(std::atomic<bool>& terminateCopy, void* p_this)
 {
-    Haply_Inverse3Controller* _deviceCtrl = static_cast<Haply_Inverse3Controller*>(p_this);
+    auto _deviceCtrl = static_cast<Haply_Inverse3Controller*>(p_this);
 
     // Use computer tick for timer
     ctime_t targetSpeedLoop = 1 ; // Target loop speed: 0.5ms

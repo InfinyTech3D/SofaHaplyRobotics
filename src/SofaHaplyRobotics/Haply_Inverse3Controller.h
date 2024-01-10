@@ -64,7 +64,7 @@ protected:
     virtual void initDevice();
     
     /// Main method to clear the device
-    virtual void clearDevice();
+    void clearDevice();
 
     bool createHapticThreads();
 
@@ -115,7 +115,7 @@ public:
     /// Data used in the copy thread to copy @sa m_hapticData into this data that can be used by simulation thread.
     DeviceData m_simuData;
 
-    haply::client* m_client = nullptr;
+    std::unique_ptr<haply::client> m_client = nullptr;
     haply::device_id m_idDevice;
     haply::device_id m_idHandle;
 private:
