@@ -102,11 +102,10 @@ public:
     /// Structure used to transfer data fromt he haptic thread to the simulation thread.
     struct DeviceData
     {
-        float position[3];
-        float orientation[4];
-        float dir[3];
-        float force[3];
-        bool buttonStatus;
+        float position[3]; // raw position of the end-effector
+        float orientation[4]; // raw quaternion of the handle
+        float force[3]; // debug raw force vector sent to the device
+        bool buttonStatus; // button press status
     };
 
     /// Data belonging to the haptic thread only
@@ -125,7 +124,7 @@ private:
     bool hapticLoopStarted = false; ///< Bool to store the information is haptic thread is running or not.
     bool m_simulationStarted = false; ///< Bool to store the information that the simulation is running or not.
 
-    bool logThread = true;
+    bool m_logThread = false;
 
     /// Bool to notify thread to stop work
     std::atomic<bool> m_terminateHaptic = true;
@@ -133,7 +132,6 @@ private:
 
     /// haptic thread c++ object
     std::thread haptic_thread;
-    Vec3 m_direction;
     std::thread copy_thread;
 };
 

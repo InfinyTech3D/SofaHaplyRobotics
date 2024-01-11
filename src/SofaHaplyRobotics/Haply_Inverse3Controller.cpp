@@ -49,7 +49,7 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     , l_forceFeedback(initLink("forceFeedBack", "link to the forceFeedBack component, if not set will search through graph and take first one encountered."))
 {
     this->f_listening.setValue(true);
-    
+   
     d_hapticIdentity.setReadOnly(true);
     d_hapticIdentity.setGroup("Infos");
 
@@ -64,10 +64,7 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
 
 Haply_Inverse3Controller::~Haply_Inverse3Controller()
 {
-    if (logThread)
-    {
-        msg_warning("HapticAvatar_HapticThreadManager") << "kill s_hapticThread";
-    }
+    msg_info_when(m_logThread, "HapticAvatar_HapticThreadManager") << "kill s_hapticThread";
 
     if (m_terminateHaptic == false && m_deviceReady)
     {
@@ -106,6 +103,8 @@ void Haply_Inverse3Controller::init()
     // Bounding box computed during execution
     d_fullBBmins.setValue(Vec3(-0.301056, -0.29919, -0.118068) * d_scale.getValue());
     d_fullBBmaxs.setValue(Vec3(0.285928, 0.16325, 0.377896) * d_scale.getValue());
+
+    m_logThread = f_printLog.getValue();
 
     initDevice();
 }
@@ -206,8 +205,7 @@ bool Haply_Inverse3Controller::createHapticThreads()
 
 void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void* p_this)
 {
-    if (logThread)
-        msg_warning("HapticAvatar_HapticThreadManager") << "Main Haptics thread created for id: " << m_idDevice;
+    msg_info_when(m_logThread, "HapticAvatar_HapticThreadManager") << "Main Haptics thread created for id: " << m_idDevice;
 
     auto _deviceCtrl = static_cast<Haply_Inverse3Controller*>(p_this);
     
@@ -219,7 +217,7 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
     // Use computer tick for timer
     ctime_t refTicksPerMs = CTime::getRefTicksPerSec() / 1000;
     ctime_t targetTicksPerLoop = targetSpeedLoop * refTicksPerMs /4;
-    if (logThread)
+    if (m_logThread)
     {
         std::cout << "refTicksPerMs: " << refTicksPerMs << std::endl;
         std::cout << "targetTicksPerLoop: " << targetTicksPerLoop << std::endl;
@@ -256,21 +254,8 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
 
             bool button = latest_handle.state.handle.data.haply.button;
             
-            // Transform our quaternion into a direction vector representing
-// where the handle is pointing.
+            // The handle device quaternion with components w, x, y, and z.
             auto q = latest_handle.state.handle.quaternion;
-
-            float s = 0.0;
-            for (int i=0; i<4; ++i)
-                s += q[i] * q[i];
-            s = 1 / s;
-
-            // The handle quaternion has r,x,y,z order.
-            Vec3 dir;
-            static constexpr size_t r = 0, x = 1, y = 2, z = 3;
-            dir[0] = 2 * s * (q[x] * q[y] - q[z] * q[r]);
-            dir[1] = 1 - 2 * s * (q[x] * q[x] + q[z] * q[z]);
-            dir[2] = 2 * s * (q[y] * q[z] + q[x] * q[r]);
 
             // 2. Compute the actual position of the tool in SOFA world
             Vec3 pos = { position[0], position[1], position[2] };
@@ -307,14 +292,10 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
             m_hapticData.position[1] = position[1];
             m_hapticData.position[2] = position[2];
 
-            m_hapticData.orientation[0] = q[0];
-            m_hapticData.orientation[1] = q[1];
-            m_hapticData.orientation[2] = q[2];
-            m_hapticData.orientation[3] = q[3];
-
-            m_hapticData.dir[0] = dir[0];
-            m_hapticData.dir[1] = dir[1];
-            m_hapticData.dir[2] = dir[2];
+            m_hapticData.orientation[0] = q[1];
+            m_hapticData.orientation[1] = q[2];
+            m_hapticData.orientation[2] = q[3];
+            m_hapticData.orientation[3] = q[0];
 
             m_hapticData.force[0] = forceInDevice[0];
             m_hapticData.force[1] = forceInDevice[1];
@@ -322,7 +303,7 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
             
             m_hapticData.buttonStatus = button;
 
-            if (logThread)
+            if (m_logThread)
             {
                 cptLoop++;
                 if (cptLoop % 1000 == 0) 
@@ -331,7 +312,6 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
                     std::cout << "Iter: " << cptLoop << " | Average haptic loop frequency " << std::to_string(int(updateFreq)) 
                         << " | pos: [" << m_hapticData.position[0] << ", " << m_hapticData.position[1] << ", " << m_hapticData.position[2] << "]"
                         << " | q: [" << q[0] << ", " << q[1] << ", " << q[2] << ", " << q[3] << "]"
-                        << " | dir: [" << dir[0] << ", " << dir[1] << ", " << dir[2] << "]"
                         << " | F: [" << m_hapticData.force[0] << ", " << m_hapticData.force[1] << ", " << m_hapticData.force[2] << "]"
                         << std::endl;
 
@@ -351,8 +331,7 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
         }
     }
 
-    if (logThread)
-        msg_warning("Haply_HapticThreadManager") << "Haptics thread END!!";
+    msg_info_when(m_logThread, "Haply_HapticThreadManager") << "Haptics thread END!!";
 }
 
 
@@ -394,17 +373,14 @@ void Haply_Inverse3Controller::simulation_updatePosition()
     const Quat& orientationBase = d_orientationBase.getValue();
     const SReal& scale = d_scale.getValue();
     Vec3 position = { m_simuData.position[0], m_simuData.position[1], m_simuData.position[2] };
-    m_direction = { m_simuData.dir[0], m_simuData.dir[1], m_simuData.dir[2] };
-    m_direction *= 10;
     
+    // Update Data on button status
     d_handleButton.setValue(m_simuData.buttonStatus);
 
     Quat ori = { m_simuData.orientation[0], m_simuData.orientation[1], m_simuData.orientation[2], m_simuData.orientation[3] };
-    //ori.normalize();
+
     Coord& posDevice = sofa::helper::getWriteOnlyAccessor(d_posDevice);
     posDevice.getCenter() = positionBase + orientationBase.rotate(position * scale);
-    //posDevice.getOrientation() = orientationBase;
-
     posDevice.getOrientation() = orientationBase * ori;
 
     // for debug dump rawforce
@@ -434,22 +410,21 @@ void Haply_Inverse3Controller::draw(const sofa::core::visual::VisualParams* vpar
     if (!d_drawDebug.getValue())
         return;
 
+    // Debug: Draw device frames
+    vparams->drawTool()->drawFrame(d_positionBase.getValue(), d_orientationBase.getValue(), sofa::type::Vec3f(1.0f, 1.0f, 2.0f));
+
+    // Debug: Draw end effector position as 3D axis
     const Coord& posDevice = d_posDevice.getValue();
     vparams->drawTool()->drawFrame(posDevice.getCenter(), posDevice.getOrientation(), sofa::type::Vec3f(1.0f, 1.0f, 1.0f));
     vparams->drawTool()->drawBoundingBox(d_fullBBmins.getValue(), d_fullBBmaxs.getValue());
 
+    // Debug: Draw force feedback vector
     sofa::type::RGBAColor color4(1.0f, 0.0, 0.0f, 1.0);
-    sofa::type::RGBAColor colorDir(0.0f, 1.0, 0.0f, 1.0);
-        
     if (d_handleButton.getValue())
     {
-        color4 = sofa::type::RGBAColor(0.0f, 0.0, 1.0f, 1.0);
-        colorDir = sofa::type::RGBAColor(0.0f, 0.0, 1.0f, 1.0);
+        color4 = sofa::type::RGBAColor(0.0f, 1.0, 0.0f, 1.0);
     }
-    const Vec3& force = d_rawForceDevice.getValue();
-    vparams->drawTool()->drawLine(posDevice.getCenter(), posDevice.getCenter() + force, color4);
-    
-    vparams->drawTool()->drawLine(posDevice.getCenter(), posDevice.getCenter() + m_direction, colorDir);
+    vparams->drawTool()->drawLine(posDevice.getCenter(), posDevice.getCenter() + d_rawForceDevice.getValue(), color4);
 }
 
 } // namespace sofa::HaplyRobotics
