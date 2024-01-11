@@ -74,11 +74,11 @@
     <Node name="Skull" >
         <Node name="VisualModel" >
             <MeshOBJLoader name="meshLoader_0" filename="Demos/Dentistry/data/mesh/skull_and_teeth.obj" handleSeams="1" 
-                rotation="-120 0 0" translation="-4 4 0"/>
-            <OglModel name="SkullVisualModel" src="@meshLoader_0" color="white" /> 
+                rotation="-120 0 0" translation="-3 0 0"/>
+            <OglModel name="SkullVisualModel" src="@meshLoader_0" color="1 0.8 0 1" /> 
         </Node>
         <Node name="CollisionModel" >
-            <MeshOBJLoader filename="Demos/Dentistry/data/mesh/skull_and_teeth_coarse.obj" rotation="-120 0 0" translation="-4 4 0" name="loader"/>
+            <MeshOBJLoader filename="Demos/Dentistry/data/mesh/skull_and_teeth_coarse.obj" rotation="-120 0 0" translation="-3 0 0" name="loader"/>
             <MeshTopology src="@loader" name="SkullCollisionModel"  />
             <MechanicalObject src="@loader" name="SkullState" />        
             <TriangleCollisionModel contactStiffness="100" simulated="0" moving="0"/>

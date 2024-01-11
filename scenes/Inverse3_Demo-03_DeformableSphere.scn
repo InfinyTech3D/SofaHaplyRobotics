@@ -75,7 +75,7 @@
         <EulerImplicitSolver rayleighMass="0.01" rayleighStiffness="0.1" /> 
         <SparseLDLSolver template="CompressedRowSparseMatrixMat3x3d"/>
         
-        <MeshOBJLoader name="loaderS" filename="./mesh/sphere_05.obj" scale3d="0.05 0.05 0.05" translation="-3 -3 2" />
+        <MeshOBJLoader name="loaderS" filename="./mesh/sphere_05.obj" scale3d="0.05 0.05 0.05" translation="0 -3 1" />
         <SparseGridRamificationTopology name="grid" n="6 6 6" src="@./loaderS" nbVirtualFinerLevels="3" finestConnectivity="0"/>
         
         <MechanicalObject name="gridDof" position="@grid.position"/>
@@ -83,7 +83,7 @@
         <TetrahedronFEMForceField name="FEM" youngModulus="80000" poissonRatio="0.45" method="large" />
         <DiagonalMass totalMass="10.0" topology="@grid" geometryState="@gridDof"/>
         
-        <BoxROI name="boxRoi1" box="-3.6 -3.6 1.4   -2.4 -2.4 2.6" drawBoxes="1"/>
+        <BoxROI name="boxRoi1" box="-0.6 -3.6 0.4   0.6 -2.4 1.6" drawBoxes="1"/>
         <FixedConstraint indices="@boxRoi1.indices" />
             
         <LinearSolverConstraintCorrection />
@@ -101,7 +101,7 @@
             <BarycentricMapping input="@../gridDof" output="@dofs" />            
 
             <Node name="VisuSurface">
-                <OglModel name="Visual" color="red" />
+                <OglModel name="Visual" texturename="textures/colorMap.png" />
                 <IdentityMapping input="@.." output="@Visual" />
             </Node>
 		</Node>
@@ -116,7 +116,7 @@
         <LineCollisionModel simulated="0" moving="0" group="1" />
         <PointCollisionModel simulated="0" moving="0" group="1"/>
 		<Node name="VisuFloor" >
-            <OglModel name="FloorVisualModel"/>
+            <OglModel name="FloorVisualModel" />
             <IdentityMapping input="@../" output="@FloorVisualModel" />
         </Node>
     </Node>

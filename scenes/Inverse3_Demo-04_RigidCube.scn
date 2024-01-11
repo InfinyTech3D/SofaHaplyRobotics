@@ -38,7 +38,7 @@
     <FreeMotionAnimationLoop/>
     <LCPConstraintSolver tolerance="0.001" maxIt="1000"/>
  
-    <Haply_Inverse3Controller name="Device" portName="COM4" scale="30.0" drawDebug="1" />
+    <Haply_Inverse3Controller name="Device" portName="COM4" scale="30.0" drawDebug="0" />
     <MechanicalObject template="Rigid3d" name="HaplyMO" position="@Device.positionDevice" />
 	
     <Node name="Instrument" >

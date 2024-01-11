@@ -39,7 +39,7 @@
     <CollisionResponse name="response" response="FrictionContactConstraint" />
     <LocalMinDistance name="proximity" alarmDistance="0.1" contactDistance="0.01" angleCone="0.1" />
 
-    <Haply_Inverse3Controller name="Device" portName="COM4" scale="50.0" drawDebug="1" positionBase="0 0 -2" />
+    <Haply_Inverse3Controller name="Device" portName="COM4" scale="50.0" drawDebug="0" positionBase="0 4 -2" />
     <MechanicalObject template="Rigid3d" name="HaplyMO" position="@Device.positionDevice" />
 	
     <Node name="Instrument" >
@@ -98,7 +98,7 @@
             <LineCollisionModel />
             <PointCollisionModel /> 
             <Node name="Visu1">
-                <OglModel name="Visual" color="red" />
+                <OglModel name="Visual" texturename="textures/colorMap.png" />
                 <IdentityMapping input="@../" output="@Visual" />
             </Node>
         </Node>

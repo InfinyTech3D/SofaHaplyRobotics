@@ -100,9 +100,29 @@ void Haply_Inverse3Controller::init()
         msg_warning() << "No forceFeedBack component found in the scene. Only the motion of the haptic tool will be simulated.";
     }
 
+
     // Bounding box computed during execution
-    d_fullBBmins.setValue(Vec3(-0.301056, -0.29919, -0.118068) * d_scale.getValue());
-    d_fullBBmaxs.setValue(Vec3(0.285928, 0.16325, 0.377896) * d_scale.getValue());
+    const Quat& orientationBase = d_orientationBase.getValue();
+    auto posDevice = d_positionBase.getValue();
+    const SReal& scale = d_scale.getValue();
+
+    Vec3 min = { -0.301056, -0.29919, -0.118068 };
+    Vec3 max = { 0.285928, 0.16325, 0.377896 };
+    min = orientationBase.rotate(min * scale);
+    max = orientationBase.rotate(max * scale);
+
+    for (int i = 0; i < 3; ++i)
+    {
+        min[i] += posDevice[i];
+        max[i] += posDevice[i];
+    }
+
+    d_fullBBmins.setValue(min);
+    d_fullBBmaxs.setValue(max);
+
+    //auto posDevice = d_positionBase.getValue();
+    //d_fullBBmins.setValue((Vec3(-0.301056 + posDevice[0], -0.29919 + posDevice[1], -0.118068 + posDevice[2]))* d_scale.getValue());
+    //d_fullBBmaxs.setValue(Vec3(0.285928 + posDevice[0], 0.16325 + posDevice[1], 0.377896 + posDevice[2]) * d_scale.getValue());
 
     m_logThread = f_printLog.getValue();
 
