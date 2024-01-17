@@ -18,8 +18,7 @@
 
 #include <sofa/helper/system/thread/CTime.h>
 #include <chrono>
-
-#include "haply.hpp"
+#include <haply.hpp>
 
 namespace sofa::HaplyRobotics
 {

@@ -10,7 +10,7 @@
 #include <sofa/type/Vec.h>
 #include <sofa/component/controller/Controller.h>
 #include <mutex>
-#include "haply.hpp"
+#include <haply.hpp>
 
 //force feedback
 #include <sofa/component/haptics/ForceFeedback.h>
