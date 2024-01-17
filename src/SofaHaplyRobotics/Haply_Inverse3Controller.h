@@ -85,6 +85,7 @@ public:
     Data<bool> d_handleButton; ///< Bool value showing if handle button is pressed
     Data<Coord> d_posDevice; ///< position of the device end-effector in SOFA Frame. Take into account @sa d_positionBase, @sa d_orientationBase and @sa d_scale
     Data<Vec3> d_rawForceDevice; ///< For debug: raw values sent to the device in the device frame
+    Data<SReal> d_dampingForce; ///< Default scale applied to the device Coordinates
 
     /// Data parameter to draw debug information
     Data<bool> d_drawDebug;

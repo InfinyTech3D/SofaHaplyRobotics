@@ -35,7 +35,7 @@
     <BruteForceBroadPhase/>
     <BVHNarrowPhase/>
     <CollisionResponse name="response" response="FrictionContactConstraint" />
-    <LocalMinDistance name="proximity" alarmDistance="0.1" contactDistance="0.01" angleCone="0.1" />
+    <LocalMinDistance name="proximity" alarmDistance="0.2" contactDistance="0.05" angleCone="0.0" />
 
     <Haply_Inverse3Controller name="Device" scale="30.0" drawDebug="0" positionBase="0 2 0"/>
     <MechanicalObject template="Rigid3d" name="HaplyMO" position="@Device.positionDevice" />

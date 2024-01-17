@@ -41,6 +41,7 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     , d_handleButton(initData(&d_handleButton, false, "handleButton", "Bool value showing if handle button is pressed"))
     , d_posDevice(initData(&d_posDevice, "positionDevice", "position of the device end-effector in SOFA frame"))
     , d_rawForceDevice(initData(&d_rawForceDevice, "rawForceDevice", "For debug: raw values sent to the device in the device frame"))
+    , d_dampingForce(initData(&d_dampingForce, 0.0001, "damping", "Default damping applied to the force feedback"))
     
     , d_drawDebug(initData(&d_drawDebug, false, "drawDebug", "Parameter to draw debug information"))
 
@@ -250,8 +251,10 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
     const Vec3& basePosition = _deviceCtrl->d_positionBase.getValue();
     const Quat& baseOrientation = _deviceCtrl->d_orientationBase.getValue();
     const SReal& scale = _deviceCtrl->d_scale.getValue();
+    const SReal& damping = d_dampingForce.getValue();
 
     haply::result<bool> result;
+    Vec3 forceInDevice = { 0.0f, 0.0f, 0.0f };
 
     while (!terminateHaptic)
     {
@@ -266,7 +269,7 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
             haply::latest latest_inv3 = m_client->latest(m_idDevice).unwrap(
                 "Unable to retrieve cursor state");
             auto position = latest_inv3.state.cursor.position;
-
+            
             // Read the latest_inv3 cached orientation quaternion and button
             // state from the handle thread.
             haply::latest latest_handle = m_client->latest(m_idHandle).unwrap(
@@ -285,27 +288,47 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
             // compute the forcefeedback given the current device position and 3D SOFA world constraints
             if (m_forceFeedback)
             {
-                m_forceFeedback->computeForce(posInSWorld[0], posInSWorld[1], posInSWorld[2], 0, 0, 0, 0, forceInSWorld[0], forceInSWorld[1], forceInSWorld[2]);
-            }
+                m_forceFeedback->computeForce(posInSWorld[0], posInSWorld[1], posInSWorld[2], 0, 0, 0, 0, forceInSWorld[0], forceInSWorld[1], forceInSWorld[2]);           
+                //std::cout << "forceInSWorld: " << forceInSWorld[0] << " " << forceInSWorld[1] << " " << forceInSWorld[2];
 
-            // project the force in the device frame
-            Vec3 forceInDevice = baseOrientation.inverseRotate(forceInSWorld);
+                // project the force in the device frame
+                forceInDevice = baseOrientation.inverseRotate(forceInSWorld);
+                //std::cout << " | forceInDevice: " << forceInDevice[0] << " " << forceInDevice[1] << " " << forceInDevice[2];
+                bool changed = false;
+                bool isInContact = false;
+                for (int i = 0; i < 3; ++i)
+                {
+                    auto forceAbs = fabs(forceInDevice[i]);                    
+                    if (forceAbs > 0.0f) {
+                        isInContact = true;
 
-            bool changed = false;
-            for (int i = 0; i < 3; ++i)
-            {
-                if (fabs(forceInDevice[i]) > 3.f) {
-                    forceInDevice[i] = 0.0f; 
-                    changed = true;
+                        if (forceAbs > 5.f) {
+                            forceInDevice[i] = 0.0f;
+                            changed = true;
+                        }
+                    }
+                }
+
+                if (changed)
+                    std::cout << "Max force: " << baseOrientation.inverseRotate(forceInSWorld) << std::endl;
+
+                // Send the current force value to the device
+                if (isInContact)
+                {
+                    // Damping is an effective tool for smoothing velocityand thus can mitigate buzzing.A typical damping formula adds a retarding
+                    // force proportional to the velocity of the device
+                    float retardingForce[3] = { -latest_inv3.state.cursor.velocity[0]*damping, -latest_inv3.state.cursor.velocity[1] * damping, -latest_inv3.state.cursor.velocity[2] * damping };
+                    
+                    //std::cout << "retardingForce: " << retardingForce[0] << " " << retardingForce[1] << " " << retardingForce[2] << std::endl;
+                    auto cursor_force = haply::make_cursor_force(forceInDevice[0] + retardingForce[0], forceInDevice[1] + retardingForce[1], forceInDevice[2] + retardingForce[2]);
+                    m_client->cursor_set_force(m_idDevice, cursor_force);
+                }
+                else
+                {
+                    auto cursor_force = haply::make_cursor_force(0.0f, 0.0f, 0.0f);
+                    m_client->cursor_set_force(m_idDevice, cursor_force);
                 }
             }
-
-            if (changed)
-                std::cout << baseOrientation.inverseRotate(forceInSWorld) << std::endl;
-
-            // Send the current force value to the device
-            auto cursor_force = haply::make_cursor_force(forceInDevice[0], forceInDevice[1], forceInDevice[2]);
-            m_client->cursor_set_force(m_idDevice, cursor_force);
 
             // Copy all data to the hapticData for further copy to SOFA Data 
             m_hapticData.position[0] = position[0];

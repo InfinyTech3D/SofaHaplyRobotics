@@ -37,9 +37,9 @@
     <BruteForceBroadPhase/>
     <BVHNarrowPhase/>
     <CollisionResponse name="response" response="FrictionContactConstraint" />
-    <LocalMinDistance name="proximity" alarmDistance="0.1" contactDistance="0.01" angleCone="0.1" />
+    <LocalMinDistance name="proximity" alarmDistance="0.2" contactDistance="0.1" angleCone="0.1" />
 
-    <Haply_Inverse3Controller name="Device" scale="50.0" drawDebug="0" positionBase="0 4 -2" />
+    <Haply_Inverse3Controller name="Device" scale="50.0" drawDebug="0" positionBase="0 6 -4" damping="0.001"/>
     <MechanicalObject template="Rigid3d" name="HaplyMO" position="@Device.positionDevice" />
 	
     <Node name="Instrument" >
@@ -50,7 +50,7 @@
 		<UniformMass name="mass" totalMass="1.0" />
 		
 		<RestShapeSpringsForceField stiffness='1000000' angularStiffness='1000000' external_rest_shape='@../HaplyMO' points='0' external_points='0'/>
-        <LCPForceFeedback name="LCPFF1" activate="true" forceCoef="0.0005"/>
+        <LCPForceFeedback name="LCPFF1" activate="true" forceCoef="0.0005" />
         <LinearSolverConstraintCorrection />
 		
 		<Node name="VisuTool" >
