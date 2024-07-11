@@ -10,7 +10,7 @@
 #include <sofa/type/Vec.h>
 #include <sofa/component/controller/Controller.h>
 #include <mutex>
-#include <haply.hpp>
+#include <haply_inverse.hpp>
 
 //force feedback
 #include <sofa/component/haptics/ForceFeedback.h>
@@ -114,9 +114,9 @@ public:
     /// Data used in the copy thread to copy @sa m_hapticData into this data that can be used by simulation thread.
     DeviceData m_simuData;
 
-    std::unique_ptr<haply::client> m_client = nullptr;
-    haply::device_id m_idDevice;
-    haply::device_id m_idHandle;
+    std::unique_ptr<haply::inverse::client> m_client = nullptr;
+    haply::inverse::device_id m_idDevice;
+    haply::inverse::device_id m_idHandle;
 private:
     /// Internal parameter to know if device is ready or not.
     bool m_deviceReady = false;

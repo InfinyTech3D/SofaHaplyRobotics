@@ -6,7 +6,6 @@
 ******************************************************************************/
 
 #include <SofaHaplyRobotics/Haply_Inverse3Controller.h>
-#include <SofaHaplyRobotics/Haply_HapticThreadManager.h>
 
 #include <sofa/simulation/AnimateBeginEvent.h>
 #include <sofa/simulation/AnimateEndEvent.h>
@@ -18,7 +17,6 @@
 
 #include <sofa/helper/system/thread/CTime.h>
 #include <chrono>
-#include <haply.hpp>
 
 namespace sofa::HaplyRobotics
 {
@@ -64,7 +62,7 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
 
 Haply_Inverse3Controller::~Haply_Inverse3Controller()
 {
-    msg_info_when(m_logThread, "HapticAvatar_HapticThreadManager") << "kill s_hapticThread";
+    msg_info_when(m_logThread, "Haply_Inverse3Controller") << "kill s_hapticThread";
 
     if (m_terminateHaptic == false && m_deviceReady)
     {
@@ -143,43 +141,43 @@ void Haply_Inverse3Controller::initDevice()
     m_initDevice = false;
 
     // Create the Haply client
-    haply::init();
+    haply::inverse::init();
 
-    m_client = std::make_unique <haply::client>();
+    m_client = std::make_unique <haply::inverse::client>();
     
     // Connect to the Haply service
     auto ret = m_client->connect();
-    if (ret != haply_ok) {
-        msg_error() << "Unable to connect the client: " << haply::retstr_c(ret);
+    if (ret != haply_inverse_ok) {
+        msg_error() << "Unable to connect the client: " << haply::inverse::retstr_c(ret);
         return;
     }
 
     // parse the list of devices and print info
     if (f_printLog.getValue())
     {
-        std::vector<haply::device_id> list;
+        std::vector<haply::inverse::device_id> list;
         {
             auto result = m_client->device_list();
             if (!result) {
-                msg_error() << "Unable to list devices: " << haply::retstr_c(result.error());
+                msg_error() << "Unable to list devices: " << haply::inverse::retstr_c(result.error());
                 return;
             }
             list = result.move();
         }
 
-        ret = haply_ok;
+        ret = haply_inverse_ok;
         msg_info() << "Device number: " << list.size();
         for (auto id : list)
         {
             auto result = m_client->latest(id);
             if (!result) {
-                msg_error() << "Unable to retrieve device id: " << id << ", state: " << haply::retstr_c(result.error());
+                msg_error() << "Unable to retrieve device id: " << id << ", state: " << haply::inverse::retstr_c(result.error());
                 ret = result.error();
                 continue;
             }
 
-            haply::latest latest = result.move();
-            auto deviceType = haply::is_inverse3(latest.device) ? "Inverse3" : "Handle";
+            haply::inverse::latest latest = result.move();
+            auto deviceType = haply::inverse::is_inverse3(latest.device) ? "Inverse3" : "Handle";
             auto isMock = latest.device.mock ? "yes" : "no";
             msg_info() << "Device: " << deviceType << " with id: " << id
                 << " | tag: " << latest.device.tag_id
@@ -188,14 +186,14 @@ void Haply_Inverse3Controller::initDevice()
     }
 
     // Get the device ids
-    m_idDevice = m_client->device_open_first(haply_device_type_inverse3)
+    m_idDevice = m_client->device_open_first(haply_inverse_device_type_inverse3)
         .unwrap("Unable to connect Inverse3");
 
-    m_idHandle = m_client->device_open_first(haply_device_type_handle)
+    m_idHandle = m_client->device_open_first(haply_inverse_device_type_verse_grip)
         .unwrap("Unable to connect Handle");
 
     std::ostringstream oss;
-    oss << "haply::version: " << haply::version() << " | Inverse3 ID : " << m_idDevice << " | Handle ID : " << m_idHandle;
+    oss << "haply::version: " << haply::inverse::version() << " | Inverse3 ID : " << m_idDevice << " | Handle ID : " << m_idHandle;
     msg_info() << oss.str();
     d_hapticIdentity.setValue(oss.str());
 
@@ -225,11 +223,11 @@ bool Haply_Inverse3Controller::createHapticThreads()
 
 void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void* p_this)
 {
-    msg_info_when(m_logThread, "HapticAvatar_HapticThreadManager") << "Main Haptics thread created for id: " << m_idDevice;
+    msg_info_when(m_logThread, "Haply_Inverse3Controller") << "Main Haptics thread created for id: " << m_idDevice;
 
     auto _deviceCtrl = static_cast<Haply_Inverse3Controller*>(p_this);
     
-    haply::thread thread{ *_deviceCtrl->m_client };
+    haply::inverse::thread thread{ *_deviceCtrl->m_client };
 
     // Loop Timer
     long targetSpeedLoop = 1; // Target loop speed: 1ms
@@ -252,7 +250,7 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
     const SReal& scale = _deviceCtrl->d_scale.getValue();
     const SReal& damping = d_dampingForce.getValue();
 
-    haply::result<bool> result;
+    haply::inverse::result<bool> result;
     Vec3 forceInDevice = { 0.0f, 0.0f, 0.0f };
 
     while (!terminateHaptic)
@@ -265,19 +263,19 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
         if (m_simulationStarted)
         {
             // 1. Get the current position of the tool in device frame
-            haply::latest latest_inv3 = m_client->latest(m_idDevice).unwrap(
+            haply::inverse::latest latest_inv3 = m_client->latest(m_idDevice).unwrap(
                 "Unable to retrieve cursor state");
-            auto position = latest_inv3.state.cursor.position;
+            auto position = latest_inv3.state.inverse.state_haptic.cursor.position;
             
             // Read the latest_inv3 cached orientation quaternion and button
             // state from the handle thread.
-            haply::latest latest_handle = m_client->latest(m_idHandle).unwrap(
+            haply::inverse::latest latest_handle = m_client->latest(m_idHandle).unwrap(
                 "Unable to retrieve handle state");
 
-            bool button = latest_handle.state.handle.data.haply.button;
+            bool button = latest_handle.state.verse_grip.data.info.button;
             
             // The handle device quaternion with components w, x, y, and z.
-            auto q = latest_handle.state.handle.quaternion;
+            auto q = latest_handle.state.verse_grip.quaternion;
 
             // 2. Compute the actual position of the tool in SOFA world
             Vec3 pos = { position[0], position[1], position[2] };
@@ -316,15 +314,15 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
                 {
                     // Damping is an effective tool for smoothing velocityand thus can mitigate buzzing.A typical damping formula adds a retarding
                     // force proportional to the velocity of the device
-                    float retardingForce[3] = { -latest_inv3.state.cursor.velocity[0]*damping, -latest_inv3.state.cursor.velocity[1] * damping, -latest_inv3.state.cursor.velocity[2] * damping };
+                    float retardingForce[3] = { -latest_inv3.state.inverse.state_haptic.cursor.velocity[0]*damping, -latest_inv3.state.inverse.state_haptic.cursor.velocity[1] * damping, -latest_inv3.state.inverse.state_haptic.cursor.velocity[2] * damping };
                     
                     //std::cout << "retardingForce: " << retardingForce[0] << " " << retardingForce[1] << " " << retardingForce[2] << std::endl;
-                    auto cursor_force = haply::make_cursor_force(forceInDevice[0] + retardingForce[0], forceInDevice[1] + retardingForce[1], forceInDevice[2] + retardingForce[2]);
+                    auto cursor_force = haply::inverse::make_cursor_force(forceInDevice[0] + retardingForce[0], forceInDevice[1] + retardingForce[1], forceInDevice[2] + retardingForce[2]);
                     m_client->cursor_set_force(m_idDevice, cursor_force);
                 }
                 else
                 {
-                    auto cursor_force = haply::make_cursor_force(0.0f, 0.0f, 0.0f);
+                    auto cursor_force = haply::inverse::make_cursor_force(0.0f, 0.0f, 0.0f);
                     m_client->cursor_set_force(m_idDevice, cursor_force);
                 }
             }
@@ -373,7 +371,7 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
         }
     }
 
-    msg_info_when(m_logThread, "Haply_HapticThreadManager") << "Haptics thread END!!";
+    msg_info_when(m_logThread, "Haply_Inverse3Controller") << "Haptics thread END!!";
 }
 
 
