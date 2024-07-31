@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.12)
 project(SofaHaplyRobotics VERSION 0.1)
 
-find_package(Sofa.Component.Controller REQUIRED)
-find_package(Sofa.Component.Haptics REQUIRED)
+sofa_find_package(Sofa.Component.Controller REQUIRED)
+sofa_find_package(Sofa.Component.Haptics REQUIRED)
 
 set(HAPLY_PREFIX "C:\\Program Files\\Haply\\Inverse\\"
     CACHE PATH "Install folder for the SDK")
@@ -46,11 +46,15 @@ target_include_directories(${PROJECT_NAME} PUBLIC "$<INSTALL_INTERFACE:include>"
 install(FILES "${HAPLY_PREFIX}\\lib\\haply-inverse-c.dll" DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} COMPONENT applications)
 
 ## Install rules for the library; CMake package configurations files
-sofa_generate_package(
-    NAME ${PROJECT_NAME}
-    TARGETS ${PROJECT_NAME}
-    VERSION ${PROJECT_VERSION}
-    INCLUDE_SOURCE_DIR ${SOFAHAPLYROBOTICS_SRC_DIR}
+sofa_create_package_with_targets(
+    PACKAGE_NAME ${PROJECT_NAME}
+    PACKAGE_VERSION ${PROJECT_VERSION}
+    TARGETS ${PROJECT_NAME} AUTO_SET_TARGET_PROPERTIES
+    INCLUDE_SOURCE_DIR "src"
     INCLUDE_INSTALL_DIR ${PROJECT_NAME}
     RELOCATABLE "plugins"
     )
+
+# Organize projects into folders
+SET_PROPERTY(GLOBAL PROPERTY USE_FOLDERS ON)
+SET_PROPERTY(TARGET ${PROJECT_NAME} PROPERTY FOLDER "plugins")
