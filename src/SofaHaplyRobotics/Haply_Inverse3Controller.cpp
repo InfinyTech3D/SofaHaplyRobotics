@@ -185,6 +185,9 @@ void Haply_Inverse3Controller::initDevice()
         }
     }
 
+    if (list.empty())
+        return;
+
     // Get the device ids
     m_idDevice = m_client->device_open_first(haply_inverse_device_type_inverse3)
         .unwrap("Unable to connect Inverse3");
