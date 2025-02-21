@@ -140,11 +140,14 @@ void Haply_Inverse3Controller::initDevice()
 {
     m_initDevice = false;
 
+    msg_info() << "haply::inverse::init()";
     // Create the Haply client
     haply::inverse::init();
 
+    msg_info() << "haply::inverse::client";
     m_client = std::make_unique <haply::inverse::client>();
     
+    msg_info() << "client->connect()";
     // Connect to the Haply service
     auto ret = m_client->connect();
     if (ret != haply_inverse_ok) {
@@ -152,18 +155,29 @@ void Haply_Inverse3Controller::initDevice()
         return;
     }
 
+    msg_info() << "client->device_list()";
+    std::vector<haply::inverse::device_id> list2 = m_client->device_list().unwrap(
+        "Unable to list devices");
+
+    msg_info() << "Device number list2: " << list2.size();
+
+    std::vector<haply::inverse::device_id> list;
+    {
+        auto result = m_client->device_list();
+        if (!result) {
+            msg_error() << "Unable to list devices: " << haply::inverse::retstr_c(result.error());
+            return;
+        }
+        list = result.move();
+    }
+    msg_info() << "Device number: " << list.size();
+
+    
+
     // parse the list of devices and print info
     if (f_printLog.getValue())
     {
-        std::vector<haply::inverse::device_id> list;
-        {
-            auto result = m_client->device_list();
-            if (!result) {
-                msg_error() << "Unable to list devices: " << haply::inverse::retstr_c(result.error());
-                return;
-            }
-            list = result.move();
-        }
+        
 
         ret = haply_inverse_ok;
         msg_info() << "Device number: " << list.size();
