@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project(SofaHaplyRobotics VERSION 0.1)
+project(SofaHaplyRobotics VERSION 0.2)
 
 sofa_find_package(Sofa.Component.Controller REQUIRED)
 sofa_find_package(Sofa.Component.Haptics REQUIRED)
@@ -9,7 +9,10 @@ set(HAPLY_PREFIX "C:\\Program Files\\Haply\\Inverse\\"
 
 ## Required include and define directives for making use of the API.
 include_directories("${HAPLY_PREFIX}\\include")
+
 add_definitions(-DUNICODE -D_UNICODE)
+
+add_subdirectory(external)
 
 set(SOFAHAPLYROBOTICS_SRC_DIR src/SofaHaplyRobotics)
 set(HEADER_FILES
@@ -36,14 +39,16 @@ add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES} ${README_FILE
 target_compile_definitions(${PROJECT_NAME} PRIVATE "-DSOFA_BUILD_SOFAHAPLYROBOTICS")
 
 # Link the plugin library to its dependencies (other libraries).
-target_link_libraries(${PROJECT_NAME} PUBLIC Sofa.Component.Controller Sofa.Component.Haptics "${HAPLY_PREFIX}\\lib\\haply-inverse-c.lib")
+target_link_libraries(${PROJECT_NAME} PUBLIC Sofa.Component.Controller Sofa.Component.Haptics "${HAPLY_PREFIX}\\lib\\Haply.HardwareAPI.lib")
+target_link_libraries(${PROJECT_NAME} PRIVATE hv_static nlohmann_json::nlohmann_json)
 
 target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>")
+target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external>")
 target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>")
 target_include_directories(${PROJECT_NAME} PUBLIC "$<INSTALL_INTERFACE:include>")
+#target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR})
 
-
-install(FILES "${HAPLY_PREFIX}\\lib\\haply-inverse-c.dll" DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} COMPONENT applications)
+#install(FILES "${HAPLY_PREFIX}\\lib\\haply-inverse-c.dll" DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} COMPONENT applications)
 
 ## Install rules for the library; CMake package configurations files
 sofa_create_package_with_targets(
