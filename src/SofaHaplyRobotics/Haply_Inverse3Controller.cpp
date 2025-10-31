@@ -37,6 +37,7 @@ namespace sofa::HaplyRobotics
 // Static constants
 const std::string Haply_Inverse3Controller::inverseKey_ = "inverse3";
 const std::string Haply_Inverse3Controller::deviceIdKey_ = "device_id";
+const std::string Haply_Inverse3Controller::gripIdKey_ = "verse_grip";
 
 
 using namespace sofa::helper::system::thread;
@@ -235,13 +236,43 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg) {
     json request = {};
 
     // Probe cursor position for each inverse
-    for (auto& el : data[inverseKey_].items()) {
+    // Handle inverse3 device(s)
+
+    // el.value example:
+    // "device_id":"04EA",
+    // "state":{"angular_position":{"a0":-30.927332,"a1":53.878685,"a2":-6.642623},"angular_velocity":{"a0":0,"a1":0,"a2":0},"body_orientation":{"w":0.69885254,"x":0.0014648438,"y":0.715271,"z":0.0024414062},"control_domain":"undefined","control_mode":"idle","current_angular_position":{"a0":0,"a1":0,"a2":0},"current_angular_torques":{"a0":0,"a1":0,"a2":0},"current_cursor_force":{"x":0,"y":0,"z":0},"current_cursor_position":{"x":0,"y":0,"z":0},"cursor_position":{"x":0.10428079,"y":-0.03648221,"z":-0.06100729},"cursor_velocity":{"x":0,"y":0,"z":0},"mode":"idle","transform":{"position":{"x":0,"y":0,"z":0},"rotation":{"w":1,"x":0,"y":0,"z":0},"scale":{"x":1,"y":1,"z":1}}},"status":{"calibrated":true,"in_use":false,"power_supply":true,"ready":true,"started":true}}
+
+
+    for (auto& el : data[inverseKey_].items()) 
+    {
+        //std::cout << "el.value(): "<< el.value() << std::endl;
         std::string deviceId = el.value()[deviceIdKey_];
         request[inverseKey_].push_back({
             {deviceIdKey_, deviceId},
             {"commands", {{"probe_position", json::object()}}}
             });
     }
+
+
+	// example of grip data
+    // grip_id: 61576 -> {"button":false, "hall" : 1, "orientation" : {"w":0.71655273, "x" : 0.19647217, "y" : 0.6290283, "z" : -0.22833252}, 
+    // "transform" : {"position":{"x":0, "y" : 0, "z" :    // 0}, "rotation" : {"w":1, "x" : 0, "y" : 0, "z" : 0}, "scale" : {"x":1, "y" : 1, "z" : 1}}}
+
+    if (data.contains(gripIdKey_)) {
+		for (auto& el : data[gripIdKey_]) {
+			std::string grip_id = el[deviceIdKey_]; // grip_id: 61576
+            const json& state = el["state"];
+            //std::cout << "grip_id: " << grip_id  << " -> " << state << std::endl;
+
+            float qx = state["orientation"]["x"].get<float>();
+            float qy = state["orientation"]["y"].get<float>();
+            float qz = state["orientation"]["z"].get<float>();
+            float qw = state["orientation"]["w"].get<float>();
+
+
+			//json orientation = el["state"]["orientation"];
+		}
+	}
 
     const auto now = std::chrono::high_resolution_clock::now();
 
