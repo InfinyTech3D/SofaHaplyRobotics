@@ -219,7 +219,12 @@ void Haply_Inverse3Controller::connect() {
 void Haply_Inverse3Controller::HapticsHandling(const std::string& msg) {
     json data = json::parse(msg);
 
+    // Todo check if this is called at the haptic speed
     const auto print_delay = std::chrono::milliseconds(1);
+    const Vec3& basePosition = d_positionBase.getValue();
+    const Quat& baseOrientation = d_orientationBase.getValue();
+    const SReal& scale = d_scale.getValue();
+    const SReal& damping = d_dampingForce.getValue();
 
     if (data[inverseKey_].empty()) {
         json update_request = {
@@ -261,6 +266,7 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg) {
             const std::string device_id = el.value()[deviceIdKey_];
             const json state = el.value()["state"];
 
+            // 1. Get the current position of the tool in device frame
             const float x = state["cursor_position"]["x"].get<float>();
             const float y = state["cursor_position"]["y"].get<float>();
             const float z = state["cursor_position"]["z"].get<float>();
@@ -271,6 +277,73 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg) {
 			m_hapticData.position[0] = x;
 			m_hapticData.position[1] = y;
 			m_hapticData.position[2] = z;
+
+            // compute ForceFeedback
+            if (m_simulationStarted)
+            {
+                // 2. Compute the actual position of the tool in SOFA world
+                Vec3 pos = { m_hapticData.position[0], m_hapticData.position[1], m_hapticData.position[2] };
+                Vec3 posInSWorld = basePosition + baseOrientation.rotate(pos * scale);
+                Vec3 forceInSWorld = { 0.0f, 0.0f, 0.0f };
+                Vec3 forceInDevice = { 0.0f, 0.0f, 0.0f };
+
+                // compute the forcefeedback given the current device position and 3D SOFA world constraints
+                if (m_forceFeedback)
+                {
+                    m_forceFeedback->computeForce(posInSWorld[0], posInSWorld[1], posInSWorld[2], 0, 0, 0, 0, forceInSWorld[0], forceInSWorld[1], forceInSWorld[2]);
+                    //std::cout << "forceInSWorld: " << forceInSWorld[0] << " " << forceInSWorld[1] << " " << forceInSWorld[2];
+
+                    // project the force in the device frame
+                    forceInDevice = baseOrientation.inverseRotate(forceInSWorld);
+                    //std::cout << " | forceInDevice: " << forceInDevice[0] << " " << forceInDevice[1] << " " << forceInDevice[2];
+                    bool changed = false;
+                    bool isInContact = false;
+                    for (int i = 0; i < 3; ++i)
+                    {
+                        auto forceAbs = fabs(forceInDevice[i]);
+                        if (forceAbs > 0.0f) {
+                            isInContact = true;
+
+                            if (forceAbs > 5.f) {
+                                forceInDevice[i] = 0.0f;
+                                changed = true;
+                            }
+                        }
+                    }
+
+                    if (changed)
+                        std::cout << "Max force: " << baseOrientation.inverseRotate(forceInSWorld) << std::endl;
+
+                    json Forces_obj = { {"x", 0}, {"y", 0}, {"z", 0} };
+                    // Send the current force value to the device
+                    if (isInContact)
+                    {
+                        // Damping is an effective tool for smoothing velocityand thus can mitigate buzzing.A typical damping formula adds a retarding
+                        // force proportional to the velocity of the device
+                        //float retardingForce[3] = { -latest_inv3.state.inverse.state_haptic.cursor.velocity[0] * damping, -latest_inv3.state.inverse.state_haptic.cursor.velocity[1] * damping, -latest_inv3.state.inverse.state_haptic.cursor.velocity[2] * damping };
+
+                        //std::cout << "retardingForce: " << retardingForce[0] << " " << retardingForce[1] << " " << retardingForce[2] << std::endl;
+                        //auto cursor_force = haply::inverse::make_cursor_force(forceInDevice[0] + retardingForce[0], forceInDevice[1] + retardingForce[1], forceInDevice[2] + retardingForce[2]);
+                        //m_client->cursor_set_force(m_idDevice, cursor_force);
+                        Forces_obj = { {"x", forceInDevice[0]}, {"y", forceInDevice[1]}, {"z", forceInDevice[2]} };
+                    }
+                    else
+                    {
+                        //auto cursor_force = haply::inverse::make_cursor_force(0.0f, 0.0f, 0.0f);
+                        //m_client->cursor_set_force(m_idDevice, cursor_force);
+                    }
+
+                    request[inverseKey_].push_back({
+                        {deviceIdKey_, device_id},
+                        {"commands", {{"set_cursor_force", {{"values", Forces_obj}}}}}
+                    });
+                }
+
+                m_hapticData.force[0] = forceInDevice[0];
+                m_hapticData.force[1] = forceInDevice[1];
+                m_hapticData.force[2] = forceInDevice[2];
+
+            }
         }
 
         if (data.contains(gripIdKey_)) 
@@ -308,163 +381,6 @@ std::unordered_map<std::string, Haply_Inverse3Controller::DeviceState> Haply_Inv
     std::lock_guard<std::mutex> lock(dataMutex_);
     return devices_;
 }
-
-
-//void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void* p_this)
-//{
-
-
-
-    //msg_info_when(m_logThread, "Haply_Inverse3Controller") << "Main Haptics thread created for id: " << m_idDevice;
-
-    //auto _deviceCtrl = static_cast<Haply_Inverse3Controller*>(p_this);
-    //
-    //haply::inverse::thread thread{ *_deviceCtrl->m_client };
-
-    //// Loop Timer
-    //long targetSpeedLoop = 1; // Target loop speed: 1ms
-
-    //// Use computer tick for timer
-    //ctime_t refTicksPerMs = CTime::getRefTicksPerSec() / 1000;
-    //ctime_t targetTicksPerLoop = targetSpeedLoop * refTicksPerMs /4;
-    //if (m_logThread)
-    //{
-    //    std::cout << "refTicksPerMs: " << refTicksPerMs << std::endl;
-    //    std::cout << "targetTicksPerLoop: " << targetTicksPerLoop << std::endl;
-    //}
-
-    //int cptLoop = 0;
-    //ctime_t startTimePrev = CTime::getRefTime();
-    //ctime_t summedLoopDuration = 0;
-
-    //const Vec3& basePosition = _deviceCtrl->d_positionBase.getValue();
-    //const Quat& baseOrientation = _deviceCtrl->d_orientationBase.getValue();
-    //const SReal& scale = _deviceCtrl->d_scale.getValue();
-    //const SReal& damping = d_dampingForce.getValue();
-
-    //haply::inverse::result<bool> result;
-    //Vec3 forceInDevice = { 0.0f, 0.0f, 0.0f };
-
-    //while (!terminateHaptic)
-    //{
-    //    ctime_t startTime = CTime::getRefTime();
-    //    summedLoopDuration += (startTime - startTimePrev);
-    //    startTimePrev = startTime;
-
-    //    // compute ForceFeedback
-    //    if (m_simulationStarted)
-    //    {
-    //        // 1. Get the current position of the tool in device frame
-    //        haply::inverse::latest latest_inv3 = m_client->latest(m_idDevice).unwrap(
-    //            "Unable to retrieve cursor state");
-    //        auto position = latest_inv3.state.inverse.state_haptic.cursor.position;
-    //        
-    //        // Read the latest_inv3 cached orientation quaternion and button
-    //        // state from the handle thread.
-    //        haply::inverse::latest latest_handle = m_client->latest(m_idHandle).unwrap(
-    //            "Unable to retrieve handle state");
-
-    //        bool button = latest_handle.state.verse_grip.data.info.button;
-    //        
-    //        // The handle device quaternion with components w, x, y, and z.
-    //        auto q = latest_handle.state.verse_grip.quaternion;
-
-    //        // 2. Compute the actual position of the tool in SOFA world
-    //        Vec3 pos = { position[0], position[1], position[2] };
-    //        Vec3 posInSWorld = basePosition + baseOrientation.rotate(pos * scale);
-    //        Vec3 forceInSWorld = { 0.0f, 0.0f, 0.0f };
-
-    //        // compute the forcefeedback given the current device position and 3D SOFA world constraints
-    //        if (m_forceFeedback)
-    //        {
-    //            m_forceFeedback->computeForce(posInSWorld[0], posInSWorld[1], posInSWorld[2], 0, 0, 0, 0, forceInSWorld[0], forceInSWorld[1], forceInSWorld[2]);           
-    //            //std::cout << "forceInSWorld: " << forceInSWorld[0] << " " << forceInSWorld[1] << " " << forceInSWorld[2];
-
-    //            // project the force in the device frame
-    //            forceInDevice = baseOrientation.inverseRotate(forceInSWorld);
-    //            //std::cout << " | forceInDevice: " << forceInDevice[0] << " " << forceInDevice[1] << " " << forceInDevice[2];
-    //            bool changed = false;
-    //            bool isInContact = false;
-    //            for (int i = 0; i < 3; ++i)
-    //            {
-    //                auto forceAbs = fabs(forceInDevice[i]);                    
-    //                if (forceAbs > 0.0f) {
-    //                    isInContact = true;
-
-    //                    if (forceAbs > 5.f) {
-    //                        forceInDevice[i] = 0.0f;
-    //                        changed = true;
-    //                    }
-    //                }
-    //            }
-
-    //            if (changed)
-    //                std::cout << "Max force: " << baseOrientation.inverseRotate(forceInSWorld) << std::endl;
-
-    //            // Send the current force value to the device
-    //            if (isInContact)
-    //            {
-    //                // Damping is an effective tool for smoothing velocityand thus can mitigate buzzing.A typical damping formula adds a retarding
-    //                // force proportional to the velocity of the device
-    //                float retardingForce[3] = { -latest_inv3.state.inverse.state_haptic.cursor.velocity[0]*damping, -latest_inv3.state.inverse.state_haptic.cursor.velocity[1] * damping, -latest_inv3.state.inverse.state_haptic.cursor.velocity[2] * damping };
-    //                
-    //                //std::cout << "retardingForce: " << retardingForce[0] << " " << retardingForce[1] << " " << retardingForce[2] << std::endl;
-    //                auto cursor_force = haply::inverse::make_cursor_force(forceInDevice[0] + retardingForce[0], forceInDevice[1] + retardingForce[1], forceInDevice[2] + retardingForce[2]);
-    //                m_client->cursor_set_force(m_idDevice, cursor_force);
-    //            }
-    //            else
-    //            {
-    //                auto cursor_force = haply::inverse::make_cursor_force(0.0f, 0.0f, 0.0f);
-    //                m_client->cursor_set_force(m_idDevice, cursor_force);
-    //            }
-    //        }
-
-    //        // Copy all data to the hapticData for further copy to SOFA Data 
-    //        m_hapticData.position[0] = position[0];
-    //        m_hapticData.position[1] = position[1];
-    //        m_hapticData.position[2] = position[2];
-
-    //        m_hapticData.orientation[0] = q[1];
-    //        m_hapticData.orientation[1] = q[2];
-    //        m_hapticData.orientation[2] = q[3];
-    //        m_hapticData.orientation[3] = q[0];
-
-    //        m_hapticData.force[0] = forceInDevice[0];
-    //        m_hapticData.force[1] = forceInDevice[1];
-    //        m_hapticData.force[2] = forceInDevice[2];
-    //        
-    //        m_hapticData.buttonStatus = button;
-
-    //        if (m_logThread)
-    //        {
-    //            cptLoop++;
-    //            if (cptLoop % 1000 == 0) 
-    //            {
-    //                float updateFreq = 1000 * 1000 / ((float)summedLoopDuration / (float)refTicksPerMs); // in Hz
-    //                std::cout << "Iter: " << cptLoop << " | Average haptic loop frequency " << std::to_string(int(updateFreq)) 
-    //                    << " | pos: [" << m_hapticData.position[0] << ", " << m_hapticData.position[1] << ", " << m_hapticData.position[2] << "]"
-    //                    << " | q: [" << q[0] << ", " << q[1] << ", " << q[2] << ", " << q[3] << "]"
-    //                    << " | F: [" << m_hapticData.force[0] << ", " << m_hapticData.force[1] << ", " << m_hapticData.force[2] << "]"
-    //                    << std::endl;
-
-    //                summedLoopDuration = 0;
-    //            }
-    //        }
-    //    }
-
-    //    ctime_t endTime = CTime::getRefTime();
-    //    ctime_t duration = endTime - startTime;
-
-    //    // If loop is quicker than the target loop speed. Wait here.
-    //    while (duration < targetTicksPerLoop)
-    //    {
-    //        endTime = CTime::getRefTime();
-    //        duration = endTime - startTime;
-    //    }
-    //}
-
-    //msg_info_when(m_logThread, "Haply_Inverse3Controller") << "Haptics thread END!!";
-//}
 
 
 void Haply_Inverse3Controller::CopyData(std::atomic<bool>& terminateCopy, void* p_this)
