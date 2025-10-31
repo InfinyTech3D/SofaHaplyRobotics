@@ -10,7 +10,9 @@
 #include <sofa/type/Vec.h>
 #include <sofa/component/controller/Controller.h>
 #include <mutex>
-#include <haply_inverse.hpp>
+#include <HardwareAPI.h>
+#include <libhv.h>
+
 
 //force feedback
 #include <sofa/component/haptics/ForceFeedback.h>
@@ -36,6 +38,14 @@ public:
     using Vec3 = sofa::type::Vec3d;
     using Quat = sofa::type::Quat<SReal>;
 
+    struct DeviceState {
+        std::vector<double> position;
+        std::vector<double> velocity;
+        std::vector<double> angles;
+        std::vector<double> angularVelocity;
+    };
+
+
     /// default constructor
     Haply_Inverse3Controller();
 
@@ -59,12 +69,19 @@ public:
     /// Method to notify that simulation is running
     void setSimulationStarted() { m_simulationStarted = true; }
 
+
+    void connect();
+    
+
+    //bool isConnected() const;
+    std::unordered_map<std::string, DeviceState> getDeviceStates();
+
 protected:
     /// Internal method to init specific info. Called by init
     virtual void initDevice();
     
     /// Main method to clear the device
-    void clearDevice();
+    void disconnect();
 
     bool createHapticThreads();
 
@@ -72,6 +89,13 @@ protected:
     void simulation_updatePosition();
    
     void updateButtonStates() const {};
+
+
+
+   
+    void handleMessage(const std::string& msg);
+    void requestUpdate();
+
 
 public:
     /// Data to store Information received by HW device
@@ -114,9 +138,12 @@ public:
     /// Data used in the copy thread to copy @sa m_hapticData into this data that can be used by simulation thread.
     DeviceData m_simuData;
 
-    std::unique_ptr<haply::inverse::client> m_client = nullptr;
-    haply::inverse::device_id m_idDevice;
-    haply::inverse::device_id m_idHandle;
+    //std::unique_ptr<haply::inverse::client> m_client = nullptr;
+    //haply::inverse::device_id m_idDevice;
+    //haply::inverse::device_id m_idHandle;
+
+
+   
 private:
     /// Internal parameter to know if device is ready or not.
     bool m_deviceReady = false;
@@ -134,6 +161,17 @@ private:
     /// haptic thread c++ object
     std::thread haptic_thread;
     std::thread copy_thread;
+
+    hv::WebSocketClient ws;
+    std::string url_;
+    std::chrono::milliseconds printDelay_{ 100 };
+    std::chrono::time_point<std::chrono::high_resolution_clock> lastPrintTime_;
+
+    std::mutex dataMutex_;
+    std::unordered_map<std::string, DeviceState> devices_;
+
+    static const std::string inverseKey_;
+    static const std::string deviceIdKey_;
 };
 
 } // namespace sofa::HaplyRobotics

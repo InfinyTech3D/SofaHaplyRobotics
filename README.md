@@ -16,6 +16,7 @@ https://develop.haply.co/releases
 Downloaded:
 - Inverse Service Installer 3.4.8: https://develop.haply.co/releases/installer
 - HardwareAPI c++ 0.2.8: https://develop.haply.co/releases/cpp
+- Device Manager 0.14: https://develop.haply.co/releases/manager
 
 Doc: https://docs.haply.co/docs/quick-start/
 
