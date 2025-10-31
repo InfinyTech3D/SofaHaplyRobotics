@@ -162,6 +162,7 @@ private:
 
     static const std::string inverseKey_;
     static const std::string deviceIdKey_;
+    static const std::string gripIdKey_;
 };
 
 } // namespace sofa::HaplyRobotics
