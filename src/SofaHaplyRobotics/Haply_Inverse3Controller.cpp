@@ -320,17 +320,10 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg) {
                     {
                         // Damping is an effective tool for smoothing velocityand thus can mitigate buzzing.A typical damping formula adds a retarding
                         // force proportional to the velocity of the device
-                        //float retardingForce[3] = { -latest_inv3.state.inverse.state_haptic.cursor.velocity[0] * damping, -latest_inv3.state.inverse.state_haptic.cursor.velocity[1] * damping, -latest_inv3.state.inverse.state_haptic.cursor.velocity[2] * damping };
-
+                        float retardingForce[3] = { -Vx * damping, -Vy * damping, -Vz * damping };
                         //std::cout << "retardingForce: " << retardingForce[0] << " " << retardingForce[1] << " " << retardingForce[2] << std::endl;
-                        //auto cursor_force = haply::inverse::make_cursor_force(forceInDevice[0] + retardingForce[0], forceInDevice[1] + retardingForce[1], forceInDevice[2] + retardingForce[2]);
-                        //m_client->cursor_set_force(m_idDevice, cursor_force);
-                        Forces_obj = { {"x", forceInDevice[0]}, {"y", forceInDevice[1]}, {"z", forceInDevice[2]} };
-                    }
-                    else
-                    {
-                        //auto cursor_force = haply::inverse::make_cursor_force(0.0f, 0.0f, 0.0f);
-                        //m_client->cursor_set_force(m_idDevice, cursor_force);
+
+                        Forces_obj = { {"x", forceInDevice[0] + retardingForce[0]}, {"y", forceInDevice[1] + retardingForce[1]}, {"z", forceInDevice[2] + retardingForce[2]} };
                     }
 
                     request[inverseKey_].push_back({
@@ -342,7 +335,6 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg) {
                 m_hapticData.force[0] = forceInDevice[0];
                 m_hapticData.force[1] = forceInDevice[1];
                 m_hapticData.force[2] = forceInDevice[2];
-
             }
         }
 
