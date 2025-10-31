@@ -61,7 +61,7 @@ public:
     ///}
 
     /// Main Haptic thread methods
-    void Haptics(std::atomic<bool>& terminate, void* p_this);
+    void HapticsHandling(const std::string& msg);
 
     /// Thread methods to cpy data from m_hapticData to m_simuData
     void CopyData(std::atomic<bool>& terminate, void* p_this);
@@ -70,31 +70,26 @@ public:
     void setSimulationStarted() { m_simulationStarted = true; }
 
 
-    void connect();
     
-
-    //bool isConnected() const;
+    
     std::unordered_map<std::string, DeviceState> getDeviceStates();
 
 protected:
     /// Internal method to init specific info. Called by init
     virtual void initDevice();
     
-    /// Main method to clear the device
-    void disconnect();
+    /// Main method to connect to the device
+    void connect();
 
+	/// Main method to disconnect from the device
+    void disconnect();
+    	
     bool createHapticThreads();
 
     /// Main method from the SOFA simulation call at each simulation step begin.
     void simulation_updatePosition();
    
     void updateButtonStates() const {};
-
-
-
-   
-    void handleMessage(const std::string& msg);
-    void requestUpdate();
 
 
 public:
@@ -137,11 +132,6 @@ public:
     DeviceData m_hapticData;
     /// Data used in the copy thread to copy @sa m_hapticData into this data that can be used by simulation thread.
     DeviceData m_simuData;
-
-    //std::unique_ptr<haply::inverse::client> m_client = nullptr;
-    //haply::inverse::device_id m_idDevice;
-    //haply::inverse::device_id m_idHandle;
-
 
    
 private:

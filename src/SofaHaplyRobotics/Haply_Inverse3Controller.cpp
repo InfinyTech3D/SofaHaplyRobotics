@@ -171,110 +171,7 @@ void Haply_Inverse3Controller::initDevice()
     reconn.delay_policy = 2;
     ws.setReconnect(&reconn);
 
-
     m_initDevice = true;
-
-    //Haply::HardwareAPI::PrintLibraryVersion();
-
-
-
-    // Create the Haply client
-    //Haply::HardwareAPI::Devices::DeviceDetection::DetectInverse3s();
-    //std::string portNames[256];
-    //int nbport = ports.size();
-
-    //if (nbport < 1)
-    //{
-    //    msg_warning() << "No Inverse3 device found";
-    //    return;
-    //}
-
-    //msg_info() << "Found " << nbport << " device(s)";
-
-    //for (unsigned int i = 0; i < nbport; i++)
-    //{
-    //    auto portName = ports[i];
-    //    msg_info() << "Found device " << portName << " at port: " << i;
-    //    //Haply::HardwareAPI::IO::SerialStream serial_stream(portName.c_str());
-
-    //    //if (serial_stream.OpenDevice() < 0)
-    //    //    msg_warning() << "unable to open serial stream for " << portName;
-    //}
-
-    //haply::inverse::init();
-
-    //msg_info() << "haply::inverse::client";
-    //m_client = std::make_unique <haply::inverse::client>();
-    //
-    //msg_info() << "client->connect()";
-    //// Connect to the Haply service
-    //auto ret = m_client->connect();
-    //if (ret != haply_inverse_ok) {
-    //    msg_error() << "Unable to connect the client: " << haply::inverse::retstr_c(ret);
-    //    return;
-    //}
-
-    //msg_info() << "client->device_list()";
-    //std::vector<haply::inverse::device_id> list2 = m_client->device_list().unwrap(
-    //    "Unable to list devices");
-
-    //msg_info() << "Device number list2: " << list2.size();
-
-    //std::vector<haply::inverse::device_id> list;
-    //{
-    //    auto result = m_client->device_list();
-    //    if (!result) {
-    //        msg_error() << "Unable to list devices: " << haply::inverse::retstr_c(result.error());
-    //        return;
-    //    }
-    //    list = result.move();
-    //}
-    //msg_info() << "Device number: " << list.size();
-
-    //
-
-    //// parse the list of devices and print info
-    //if (f_printLog.getValue())
-    //{
-    //    
-
-    //    ret = haply_inverse_ok;
-    //    msg_info() << "Device number: " << list.size();
-    //    for (auto id : list)
-    //    {
-    //        auto result = m_client->latest(id);
-    //        if (!result) {
-    //            msg_error() << "Unable to retrieve device id: " << id << ", state: " << haply::inverse::retstr_c(result.error());
-    //            ret = result.error();
-    //            continue;
-    //        }
-
-    //        haply::inverse::latest latest = result.move();
-    //        auto deviceType = haply::inverse::is_inverse3(latest.device) ? "Inverse3" : "Handle";
-    //        auto isMock = latest.device.mock ? "yes" : "no";
-    //        msg_info() << "Device: " << deviceType << " with id: " << id
-    //            << " | tag: " << latest.device.tag_id
-    //            << " | mocks: " << isMock;
-    //    }
-    //}
-
-    //if (list.empty())
-    //    return;
-
-    //// Get the device ids
-    //m_idDevice = m_client->device_open_first(haply_inverse_device_type_inverse3)
-    //    .unwrap("Unable to connect Inverse3");
-
-    //m_idHandle = m_client->device_open_first(haply_inverse_device_type_verse_grip)
-    //    .unwrap("Unable to connect Handle");
-
-    //std::ostringstream oss;
-    //oss << "haply::version: " << haply::inverse::version() << " | Inverse3 ID : " << m_idDevice << " | Handle ID : " << m_idHandle;
-    //msg_info() << oss.str();
-    //d_hapticIdentity.setValue(oss.str());
-
-    // set initDevice to true if Haply client and devices have well be initialized
-    //m_initDevice = true;
 }
 
 
@@ -300,7 +197,7 @@ bool Haply_Inverse3Controller::createHapticThreads()
         };
 
     ws.onmessage = [&](const std::string& msg) {
-        handleMessage(msg);
+        HapticsHandling(msg);
         };
 
     ws.onclose = [&]() {
@@ -308,8 +205,6 @@ bool Haply_Inverse3Controller::createHapticThreads()
         };
 
     msg_info() << "Haply_Inverse3Controller::createHapticThreads()";
-
-   // ws.open("ws://localhost:10001");
 
     return true;
 }
@@ -320,14 +215,7 @@ void Haply_Inverse3Controller::connect() {
 }
 
 
-//bool Haply_Inverse3Controller::isConnected() const {
-//    bool val = ws.isConnected();
-//    return val;
-//}
-
-
-
-void Haply_Inverse3Controller::handleMessage(const std::string& msg) {
+void Haply_Inverse3Controller::HapticsHandling(const std::string& msg) {
     json data = json::parse(msg);
 
     const auto print_delay = std::chrono::milliseconds(1);
@@ -422,13 +310,6 @@ void Haply_Inverse3Controller::handleMessage(const std::string& msg) {
 }
 
 
-void Haply_Inverse3Controller::requestUpdate() {
-    json update_request = {
-        {"session", {{"force_render_full_state", json::object()}}}
-    };
-    ws.send(update_request.dump());
-}
-
 
 std::unordered_map<std::string, Haply_Inverse3Controller::DeviceState> Haply_Inverse3Controller::getDeviceStates() 
 {
@@ -437,8 +318,8 @@ std::unordered_map<std::string, Haply_Inverse3Controller::DeviceState> Haply_Inv
 }
 
 
-void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void* p_this)
-{
+//void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void* p_this)
+//{
 
 
 
@@ -591,7 +472,7 @@ void Haply_Inverse3Controller::Haptics(std::atomic<bool>& terminateHaptic, void*
     //}
 
     //msg_info_when(m_logThread, "Haply_Inverse3Controller") << "Haptics thread END!!";
-}
+//}
 
 
 void Haply_Inverse3Controller::CopyData(std::atomic<bool>& terminateCopy, void* p_this)
