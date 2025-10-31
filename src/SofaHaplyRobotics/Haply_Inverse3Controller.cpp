@@ -237,15 +237,9 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg) {
 
     // Probe cursor position for each inverse
     // Handle inverse3 device(s)
-
-    // el.value example:
-    // "device_id":"04EA",
-    // "state":{"angular_position":{"a0":-30.927332,"a1":53.878685,"a2":-6.642623},"angular_velocity":{"a0":0,"a1":0,"a2":0},"body_orientation":{"w":0.69885254,"x":0.0014648438,"y":0.715271,"z":0.0024414062},"control_domain":"undefined","control_mode":"idle","current_angular_position":{"a0":0,"a1":0,"a2":0},"current_angular_torques":{"a0":0,"a1":0,"a2":0},"current_cursor_force":{"x":0,"y":0,"z":0},"current_cursor_position":{"x":0,"y":0,"z":0},"cursor_position":{"x":0.10428079,"y":-0.03648221,"z":-0.06100729},"cursor_velocity":{"x":0,"y":0,"z":0},"mode":"idle","transform":{"position":{"x":0,"y":0,"z":0},"rotation":{"w":1,"x":0,"y":0,"z":0},"scale":{"x":1,"y":1,"z":1}}},"status":{"calibrated":true,"in_use":false,"power_supply":true,"ready":true,"started":true}}
-
-
+    // TODO check what are the differnt request possible
     for (auto& el : data[inverseKey_].items()) 
     {
-        //std::cout << "el.value(): "<< el.value() << std::endl;
         std::string deviceId = el.value()[deviceIdKey_];
         request[inverseKey_].push_back({
             {deviceIdKey_, deviceId},
@@ -254,31 +248,14 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg) {
     }
 
 
-	// example of grip data
-    // grip_id: 61576 -> {"button":false, "hall" : 1, "orientation" : {"w":0.71655273, "x" : 0.19647217, "y" : 0.6290283, "z" : -0.22833252}, 
-    // "transform" : {"position":{"x":0, "y" : 0, "z" :    // 0}, "rotation" : {"w":1, "x" : 0, "y" : 0, "z" : 0}, "scale" : {"x":1, "y" : 1, "z" : 1}}}
-
-    if (data.contains(gripIdKey_)) {
-		for (auto& el : data[gripIdKey_]) {
-			std::string grip_id = el[deviceIdKey_]; // grip_id: 61576
-            const json& state = el["state"];
-            //std::cout << "grip_id: " << grip_id  << " -> " << state << std::endl;
-
-            float qx = state["orientation"]["x"].get<float>();
-            float qy = state["orientation"]["y"].get<float>();
-            float qz = state["orientation"]["z"].get<float>();
-            float qw = state["orientation"]["w"].get<float>();
-
-
-			//json orientation = el["state"]["orientation"];
-		}
-	}
-
     const auto now = std::chrono::high_resolution_clock::now();
 
     if (now > lastPrintTime_ + print_delay) {
         lastPrintTime_ = now;
 
+        // example of inverse3 data
+        // "device_id":"04EA",
+        // "state":{"angular_position":{"a0":-30.927332,"a1":53.878685,"a2":-6.642623},"angular_velocity":{"a0":0,"a1":0,"a2":0},"body_orientation":{"w":0.69885254,"x":0.0014648438,"y":0.715271,"z":0.0024414062},"control_domain":"undefined","control_mode":"idle","current_angular_position":{"a0":0,"a1":0,"a2":0},"current_angular_torques":{"a0":0,"a1":0,"a2":0},"current_cursor_force":{"x":0,"y":0,"z":0},"current_cursor_position":{"x":0,"y":0,"z":0},"cursor_position":{"x":0.10428079,"y":-0.03648221,"z":-0.06100729},"cursor_velocity":{"x":0,"y":0,"z":0},"mode":"idle","transform":{"position":{"x":0,"y":0,"z":0},"rotation":{"w":1,"x":0,"y":0,"z":0},"scale":{"x":1,"y":1,"z":1}}},"status":{"calibrated":true,"in_use":false,"power_supply":true,"ready":true,"started":true}}
         for (auto& el : data[inverseKey_].items()) 
         {
             const std::string device_id = el.value()[deviceIdKey_];
@@ -291,49 +268,33 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg) {
             const float Vy = state["cursor_velocity"]["y"].get<float>();
             const float Vz = state["cursor_velocity"]["z"].get<float>();
 
-            //std::cout << "Inverse Velocities - x: " << Vx << "\t y: " << Vy << "\t z: " << Vz << std::endl;
 			m_hapticData.position[0] = x;
 			m_hapticData.position[1] = y;
 			m_hapticData.position[2] = z;
-
-
-            //printf("ID : %s   |    Position : %s   |   Velocity : %s   |   Angles : %s   |   Angular Velocity : %s\n",
-            //    device_id.c_str(),
-            //    state["cursor_position"].dump().c_str(),
-            //    state["cursor_velocity"].dump().c_str(),
-            //    state["angular_position"].dump().c_str(),
-            //    state["angular_velocity"].dump().c_str());
-
-
         }
-        //print("\n");
-        //fflush(stdout);
-        //std::lock_guard<std::mutex> lock(dataMutex_);
-        //devices_.clear();
 
-        //for (auto& el : data[inverseKey_].items()) 
-        //{
-        //    const std::string deviceId = el.value()[deviceIdKey_];
-        //    const json state = el.value()["state"];
+        if (data.contains(gripIdKey_)) 
+        {
+            // example of grip data
+            // grip_id: 61576 -> {"button":false, "hall" : 1, "orientation" : {"w":0.71655273, "x" : 0.19647217, "y" : 0.6290283, "z" : -0.22833252}, 
+            // "transform" : {"position":{"x":0, "y" : 0, "z" :    // 0}, "rotation" : {"w":1, "x" : 0, "y" : 0, "z" : 0}, "scale" : {"x":1, "y" : 1, "z" : 1}}}
+            for (auto& el : data[gripIdKey_]) 
+            {
+                std::string grip_id = el[deviceIdKey_];
+                const json& state = el["state"];
 
-        //    DeviceState ds;
-        //    ds.position = state["cursor_position"].get<std::vector<double>>();
-        //    ds.velocity = state["cursor_velocity"].get<std::vector<double>>();
-        //    ds.angles = state["angular_position"].get<std::vector<double>>();
-        //    ds.angularVelocity = state["angular_velocity"].get<std::vector<double>>();
+                float qx = state["orientation"]["x"].get<float>();
+                float qy = state["orientation"]["y"].get<float>();
+                float qz = state["orientation"]["z"].get<float>();
+                float qw = state["orientation"]["w"].get<float>();
 
-        //    devices_[deviceId] = ds;
-
-        //    // Optional console output
-        //    std::cout << "ID: " << deviceId
-        //        << " | Pos: " << state["cursor_position"]
-        //        << " | Vel: " << state["cursor_velocity"]
-        //        << " | Ang: " << state["angular_position"]
-        //        << " | AngVel: " << state["angular_velocity"]
-        //        << std::endl;
-        //}
-
-        //std::cout << std::endl;
+                m_hapticData.orientation[0] = qx;
+                m_hapticData.orientation[1] = qy;
+                m_hapticData.orientation[2] = qz;
+                m_hapticData.orientation[3] = qw;
+                m_hapticData.buttonStatus = state["button"].get<bool>();
+            }
+        }
     }
 
     ws.send(request.dump());
