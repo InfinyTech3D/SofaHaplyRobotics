@@ -157,10 +157,6 @@ void Haply_Inverse3Controller::bwdInit()
 
 void Haply_Inverse3Controller::initDevice()
 {
-    m_initDevice = false;
-
-    msg_info() << "haply::inverse::init()";
-
 	lastPrintTime_ = std::chrono::high_resolution_clock::now();
     const auto print_delay = std::chrono::milliseconds(100);
     auto current = std::chrono::high_resolution_clock::now();
@@ -186,9 +182,7 @@ void Haply_Inverse3Controller::disconnect()
 
 bool Haply_Inverse3Controller::createHapticThreads()
 {
-    //m_terminateHaptic = false;
-    //haptic_thread = std::thread(&Haply_Inverse3Controller::Haptics, this, std::ref(this->m_terminateHaptic), this);
-    //hapticLoopStarted = true;
+    msg_info() << "Haply_Inverse3Controller::createHapticThreads()";
 
     m_terminateCopy = false;
     copy_thread = std::thread(&Haply_Inverse3Controller::CopyData, this, std::ref(this->m_terminateCopy), this);
@@ -204,8 +198,6 @@ bool Haply_Inverse3Controller::createHapticThreads()
     ws.onclose = [&]() {
         std::cout << "[MyDeviceDriver] WebSocket closed." << std::endl;
         };
-
-    msg_info() << "Haply_Inverse3Controller::createHapticThreads()";
 
     return true;
 }
@@ -251,7 +243,6 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg) {
             {"commands", {{"probe_position", json::object()}}}
             });
     }
-
 
     const auto now = std::chrono::high_resolution_clock::now();
 
@@ -353,9 +344,9 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg) {
                 float qz = state["orientation"]["z"].get<float>();
                 float qw = state["orientation"]["w"].get<float>();
 
-                m_hapticData.orientation[0] = qx;
+                m_hapticData.orientation[0] = -qx;
                 m_hapticData.orientation[1] = qy;
-                m_hapticData.orientation[2] = qz;
+                m_hapticData.orientation[2] = -qz;
                 m_hapticData.orientation[3] = qw;
                 m_hapticData.buttonStatus = state["button"].get<bool>();
             }
@@ -437,7 +428,7 @@ void Haply_Inverse3Controller::handleEvent(core::objectmodel::Event* event)
     {
         if (hapticLoopStarted == false)
         {
-            std::cout << "START CONNEXION" << std::endl;
+            msg_info() << "Haply_Inverse3Controller Start device communication at: ws://localhost:10001";
 			connect();
 			hapticLoopStarted = true;
         }
