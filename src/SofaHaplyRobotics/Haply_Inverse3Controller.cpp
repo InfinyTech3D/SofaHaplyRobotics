@@ -344,9 +344,9 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg) {
                 float qz = state["orientation"]["z"].get<float>();
                 float qw = state["orientation"]["w"].get<float>();
 
-                m_hapticData.orientation[0] = -qx;
+                m_hapticData.orientation[0] = qx;
                 m_hapticData.orientation[1] = qy;
-                m_hapticData.orientation[2] = -qz;
+                m_hapticData.orientation[2] = qz;
                 m_hapticData.orientation[3] = qw;
                 m_hapticData.buttonStatus = state["button"].get<bool>();
             }
@@ -449,11 +449,12 @@ void Haply_Inverse3Controller::draw(const sofa::core::visual::VisualParams* vpar
         return;
 
     // Debug: Draw device frames
-    vparams->drawTool()->drawFrame(d_positionBase.getValue(), d_orientationBase.getValue(), sofa::type::Vec3f(1.0f, 1.0f, 2.0f));
+    const SReal scale = d_scale.getValue();
+    vparams->drawTool()->drawFrame(d_positionBase.getValue(), d_orientationBase.getValue(), sofa::type::Vec3f(0.1f * scale, 0.1f * scale, 0.1f * scale));
 
     // Debug: Draw end effector position as 3D axis
-    const Coord& posDevice = d_posDevice.getValue();
-    vparams->drawTool()->drawFrame(posDevice.getCenter(), posDevice.getOrientation(), sofa::type::Vec3f(1.0f, 1.0f, 1.0f));
+    const Coord& posDevice = d_posDevice.getValue();	
+    vparams->drawTool()->drawFrame(posDevice.getCenter(), posDevice.getOrientation(), sofa::type::Vec3f(0.05f * scale, 0.05f * scale, 0.05f * scale));
     vparams->drawTool()->drawBoundingBox(d_fullBBmins.getValue(), d_fullBBmaxs.getValue());
 
     // Debug: Draw force feedback vector
