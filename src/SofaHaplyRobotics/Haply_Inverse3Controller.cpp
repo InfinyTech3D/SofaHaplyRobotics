@@ -157,10 +157,6 @@ void Haply_Inverse3Controller::bwdInit()
 
 void Haply_Inverse3Controller::initDevice()
 {
-    m_initDevice = false;
-
-    msg_info() << "haply::inverse::init()";
-
 	lastPrintTime_ = std::chrono::high_resolution_clock::now();
     const auto print_delay = std::chrono::milliseconds(100);
     auto current = std::chrono::high_resolution_clock::now();
@@ -186,9 +182,7 @@ void Haply_Inverse3Controller::disconnect()
 
 bool Haply_Inverse3Controller::createHapticThreads()
 {
-    //m_terminateHaptic = false;
-    //haptic_thread = std::thread(&Haply_Inverse3Controller::Haptics, this, std::ref(this->m_terminateHaptic), this);
-    //hapticLoopStarted = true;
+    msg_info() << "Haply_Inverse3Controller::createHapticThreads()";
 
     m_terminateCopy = false;
     copy_thread = std::thread(&Haply_Inverse3Controller::CopyData, this, std::ref(this->m_terminateCopy), this);
@@ -204,8 +198,6 @@ bool Haply_Inverse3Controller::createHapticThreads()
     ws.onclose = [&]() {
         std::cout << "[MyDeviceDriver] WebSocket closed." << std::endl;
         };
-
-    msg_info() << "Haply_Inverse3Controller::createHapticThreads()";
 
     return true;
 }
@@ -251,7 +243,6 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg) {
             {"commands", {{"probe_position", json::object()}}}
             });
     }
-
 
     const auto now = std::chrono::high_resolution_clock::now();
 
@@ -437,7 +428,7 @@ void Haply_Inverse3Controller::handleEvent(core::objectmodel::Event* event)
     {
         if (hapticLoopStarted == false)
         {
-            std::cout << "START CONNEXION" << std::endl;
+            msg_info() << "Haply_Inverse3Controller Start device communication at: ws://localhost:10001";
 			connect();
 			hapticLoopStarted = true;
         }
@@ -458,11 +449,12 @@ void Haply_Inverse3Controller::draw(const sofa::core::visual::VisualParams* vpar
         return;
 
     // Debug: Draw device frames
-    vparams->drawTool()->drawFrame(d_positionBase.getValue(), d_orientationBase.getValue(), sofa::type::Vec3f(1.0f, 1.0f, 2.0f));
+    const SReal scale = d_scale.getValue();
+    vparams->drawTool()->drawFrame(d_positionBase.getValue(), d_orientationBase.getValue(), sofa::type::Vec3f(0.1f * scale, 0.1f * scale, 0.1f * scale));
 
     // Debug: Draw end effector position as 3D axis
-    const Coord& posDevice = d_posDevice.getValue();
-    vparams->drawTool()->drawFrame(posDevice.getCenter(), posDevice.getOrientation(), sofa::type::Vec3f(1.0f, 1.0f, 1.0f));
+    const Coord& posDevice = d_posDevice.getValue();	
+    vparams->drawTool()->drawFrame(posDevice.getCenter(), posDevice.getOrientation(), sofa::type::Vec3f(0.05f * scale, 0.05f * scale, 0.05f * scale));
     vparams->drawTool()->drawBoundingBox(d_fullBBmins.getValue(), d_fullBBmaxs.getValue());
 
     // Debug: Draw force feedback vector

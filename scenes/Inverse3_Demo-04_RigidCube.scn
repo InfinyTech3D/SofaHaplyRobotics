@@ -55,7 +55,7 @@
 		
 		<Node name="VisuTool" >
             <MeshOBJLoader name="meshLoader_1" filename="./mesh/dental_instrument.obj" handleSeams="1"
-                rotation="-90 -90 0" translation="0 -3.5 0.3"/>
+                rotation="-90 90 0" translation="0 -3.5 0.3"/>
             <OglModel name="InstrumentVisualModel" src="@meshLoader_1" color="1.0 0.2 0.2 1.0" />
             <RigidMapping name="MM->VM mapping" input="@instrumentState" output="@InstrumentVisualModel" />
         </Node>
