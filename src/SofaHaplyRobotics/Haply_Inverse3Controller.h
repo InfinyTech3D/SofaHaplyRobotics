@@ -10,7 +10,6 @@
 #include <sofa/type/Vec.h>
 #include <sofa/component/controller/Controller.h>
 #include <mutex>
-#include <HardwareAPI.h>
 #include <libhv.h>
 
 
