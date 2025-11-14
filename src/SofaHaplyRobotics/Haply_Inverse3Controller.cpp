@@ -208,11 +208,22 @@ void Haply_Inverse3Controller::connect() {
 }
 
 
-void Haply_Inverse3Controller::HapticsHandling(const std::string& msg) {
+void Haply_Inverse3Controller::HapticsHandling(const std::string& msg) 
+{
+    // Loop Timer
+    long targetSpeedLoop = 0.33; // Target loop speed: (~0.33 s at 3 kHz)
+
+    // Use computer tick for timer
+    static ctime_t refTicksPerMs = CTime::getRefTicksPerSec() / 1000;
+    static ctime_t targetTicksPerLoop = targetSpeedLoop * refTicksPerMs;
+
+    static int cptLoop = 0;
+    ctime_t startTime = CTime::getRefTime();
+    ctime_t summedLoopDuration = 0;
+    
     json data = json::parse(msg);
 
     // Todo check if this is called at the haptic speed
-    const auto print_delay = std::chrono::milliseconds(1);
     const Vec3& basePosition = d_positionBase.getValue();
     const Quat& baseOrientation = d_orientationBase.getValue();
     const SReal& scale = d_scale.getValue();
@@ -244,117 +255,132 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg) {
             });
     }
 
-    const auto now = std::chrono::high_resolution_clock::now();
 
-    if (now > lastPrintTime_ + print_delay) {
-        lastPrintTime_ = now;
+    // example of inverse3 data
+    // "device_id":"04EA",
+    // "state":{"angular_position":{"a0":-30.927332,"a1":53.878685,"a2":-6.642623},"angular_velocity":{"a0":0,"a1":0,"a2":0},"body_orientation":{"w":0.69885254,"x":0.0014648438,"y":0.715271,"z":0.0024414062},"control_domain":"undefined","control_mode":"idle","current_angular_position":{"a0":0,"a1":0,"a2":0},"current_angular_torques":{"a0":0,"a1":0,"a2":0},"current_cursor_force":{"x":0,"y":0,"z":0},"current_cursor_position":{"x":0,"y":0,"z":0},"cursor_position":{"x":0.10428079,"y":-0.03648221,"z":-0.06100729},"cursor_velocity":{"x":0,"y":0,"z":0},"mode":"idle","transform":{"position":{"x":0,"y":0,"z":0},"rotation":{"w":1,"x":0,"y":0,"z":0},"scale":{"x":1,"y":1,"z":1}}},"status":{"calibrated":true,"in_use":false,"power_supply":true,"ready":true,"started":true}}
+    for (auto& el : data[inverseKey_].items()) 
+    {
+        const std::string device_id = el.value()[deviceIdKey_];
+        const json state = el.value()["state"];
 
-        // example of inverse3 data
-        // "device_id":"04EA",
-        // "state":{"angular_position":{"a0":-30.927332,"a1":53.878685,"a2":-6.642623},"angular_velocity":{"a0":0,"a1":0,"a2":0},"body_orientation":{"w":0.69885254,"x":0.0014648438,"y":0.715271,"z":0.0024414062},"control_domain":"undefined","control_mode":"idle","current_angular_position":{"a0":0,"a1":0,"a2":0},"current_angular_torques":{"a0":0,"a1":0,"a2":0},"current_cursor_force":{"x":0,"y":0,"z":0},"current_cursor_position":{"x":0,"y":0,"z":0},"cursor_position":{"x":0.10428079,"y":-0.03648221,"z":-0.06100729},"cursor_velocity":{"x":0,"y":0,"z":0},"mode":"idle","transform":{"position":{"x":0,"y":0,"z":0},"rotation":{"w":1,"x":0,"y":0,"z":0},"scale":{"x":1,"y":1,"z":1}}},"status":{"calibrated":true,"in_use":false,"power_supply":true,"ready":true,"started":true}}
-        for (auto& el : data[inverseKey_].items()) 
+        // 1. Get the current position of the tool in device frame
+        const float x = state["cursor_position"]["x"].get<float>();
+        const float y = state["cursor_position"]["y"].get<float>();
+        const float z = state["cursor_position"]["z"].get<float>();
+        const float Vx = state["cursor_velocity"]["x"].get<float>();
+        const float Vy = state["cursor_velocity"]["y"].get<float>();
+        const float Vz = state["cursor_velocity"]["z"].get<float>();
+
+		m_hapticData.position[0] = x;
+		m_hapticData.position[1] = y;
+		m_hapticData.position[2] = z;
+
+        // compute ForceFeedback
+        if (m_simulationStarted)
         {
-            const std::string device_id = el.value()[deviceIdKey_];
-            const json state = el.value()["state"];
+            // 2. Compute the actual position of the tool in SOFA world
+            Vec3 pos = { m_hapticData.position[0], m_hapticData.position[1], m_hapticData.position[2] };
+            Vec3 posInSWorld = basePosition + baseOrientation.rotate(pos * scale);
+            Vec3 forceInSWorld = { 0.0f, 0.0f, 0.0f };
+            Vec3 forceInDevice = { 0.0f, 0.0f, 0.0f };
 
-            // 1. Get the current position of the tool in device frame
-            const float x = state["cursor_position"]["x"].get<float>();
-            const float y = state["cursor_position"]["y"].get<float>();
-            const float z = state["cursor_position"]["z"].get<float>();
-            const float Vx = state["cursor_velocity"]["x"].get<float>();
-            const float Vy = state["cursor_velocity"]["y"].get<float>();
-            const float Vz = state["cursor_velocity"]["z"].get<float>();
-
-			m_hapticData.position[0] = x;
-			m_hapticData.position[1] = y;
-			m_hapticData.position[2] = z;
-
-            // compute ForceFeedback
-            if (m_simulationStarted)
+            // compute the forcefeedback given the current device position and 3D SOFA world constraints
+            if (m_forceFeedback)
             {
-                // 2. Compute the actual position of the tool in SOFA world
-                Vec3 pos = { m_hapticData.position[0], m_hapticData.position[1], m_hapticData.position[2] };
-                Vec3 posInSWorld = basePosition + baseOrientation.rotate(pos * scale);
-                Vec3 forceInSWorld = { 0.0f, 0.0f, 0.0f };
-                Vec3 forceInDevice = { 0.0f, 0.0f, 0.0f };
+                m_forceFeedback->computeForce(posInSWorld[0], posInSWorld[1], posInSWorld[2], 0, 0, 0, 0, forceInSWorld[0], forceInSWorld[1], forceInSWorld[2]);
+                //std::cout << "forceInSWorld: " << forceInSWorld[0] << " " << forceInSWorld[1] << " " << forceInSWorld[2];
 
-                // compute the forcefeedback given the current device position and 3D SOFA world constraints
-                if (m_forceFeedback)
+                // project the force in the device frame
+                forceInDevice = baseOrientation.inverseRotate(forceInSWorld);
+                //std::cout << " | forceInDevice: " << forceInDevice[0] << " " << forceInDevice[1] << " " << forceInDevice[2];
+                bool changed = false;
+                bool isInContact = false;
+                for (int i = 0; i < 3; ++i)
                 {
-                    m_forceFeedback->computeForce(posInSWorld[0], posInSWorld[1], posInSWorld[2], 0, 0, 0, 0, forceInSWorld[0], forceInSWorld[1], forceInSWorld[2]);
-                    //std::cout << "forceInSWorld: " << forceInSWorld[0] << " " << forceInSWorld[1] << " " << forceInSWorld[2];
+                    auto forceAbs = fabs(forceInDevice[i]);
+                    if (forceAbs > 0.0f) {
+                        isInContact = true;
 
-                    // project the force in the device frame
-                    forceInDevice = baseOrientation.inverseRotate(forceInSWorld);
-                    //std::cout << " | forceInDevice: " << forceInDevice[0] << " " << forceInDevice[1] << " " << forceInDevice[2];
-                    bool changed = false;
-                    bool isInContact = false;
-                    for (int i = 0; i < 3; ++i)
-                    {
-                        auto forceAbs = fabs(forceInDevice[i]);
-                        if (forceAbs > 0.0f) {
-                            isInContact = true;
-
-                            if (forceAbs > 5.f) {
-                                forceInDevice[i] = 0.0f;
-                                changed = true;
-                            }
+                        if (forceAbs > 5.f) {
+                            forceInDevice[i] = 0.0f;
+                            changed = true;
                         }
                     }
-
-                    if (changed)
-                        std::cout << "Max force: " << baseOrientation.inverseRotate(forceInSWorld) << std::endl;
-
-                    json Forces_obj = { {"x", 0}, {"y", 0}, {"z", 0} };
-                    // Send the current force value to the device
-                    if (isInContact)
-                    {
-                        // Damping is an effective tool for smoothing velocityand thus can mitigate buzzing.A typical damping formula adds a retarding
-                        // force proportional to the velocity of the device
-                        float retardingForce[3] = { -Vx * damping, -Vy * damping, -Vz * damping };
-                        //std::cout << "retardingForce: " << retardingForce[0] << " " << retardingForce[1] << " " << retardingForce[2] << std::endl;
-
-                        Forces_obj = { {"x", forceInDevice[0] + retardingForce[0]}, {"y", forceInDevice[1] + retardingForce[1]}, {"z", forceInDevice[2] + retardingForce[2]} };
-                    }
-
-                    request[inverseKey_].push_back({
-                        {deviceIdKey_, device_id},
-                        {"commands", {{"set_cursor_force", {{"values", Forces_obj}}}}}
-                    });
                 }
 
-                m_hapticData.force[0] = forceInDevice[0];
-                m_hapticData.force[1] = forceInDevice[1];
-                m_hapticData.force[2] = forceInDevice[2];
+                if (changed)
+                    std::cout << "Max force: " << baseOrientation.inverseRotate(forceInSWorld) << std::endl;
+
+                json Forces_obj = { {"x", 0}, {"y", 0}, {"z", 0} };
+                // Send the current force value to the device
+                if (isInContact)
+                {
+                    // Damping is an effective tool for smoothing velocityand thus can mitigate buzzing.A typical damping formula adds a retarding
+                    // force proportional to the velocity of the device
+                    float retardingForce[3] = { -Vx * damping, -Vy * damping, -Vz * damping };
+                    //std::cout << "retardingForce: " << retardingForce[0] << " " << retardingForce[1] << " " << retardingForce[2] << std::endl;
+
+                    Forces_obj = { {"x", forceInDevice[0] + retardingForce[0]}, {"y", forceInDevice[1] + retardingForce[1]}, {"z", forceInDevice[2] + retardingForce[2]} };
+                }
+
+                request[inverseKey_].push_back({
+                    {deviceIdKey_, device_id},
+                    {"commands", {{"set_cursor_force", {{"values", Forces_obj}}}}}
+                });
             }
+
+            m_hapticData.force[0] = forceInDevice[0];
+            m_hapticData.force[1] = forceInDevice[1];
+            m_hapticData.force[2] = forceInDevice[2];
         }
+    }
 
-        if (data.contains(gripIdKey_)) 
+    if (data.contains(gripIdKey_)) 
+    {
+        // example of grip data
+        // grip_id: 61576 -> {"button":false, "hall" : 1, "orientation" : {"w":0.71655273, "x" : 0.19647217, "y" : 0.6290283, "z" : -0.22833252}, 
+        // "transform" : {"position":{"x":0, "y" : 0, "z" :    // 0}, "rotation" : {"w":1, "x" : 0, "y" : 0, "z" : 0}, "scale" : {"x":1, "y" : 1, "z" : 1}}}
+        for (auto& el : data[gripIdKey_]) 
         {
-            // example of grip data
-            // grip_id: 61576 -> {"button":false, "hall" : 1, "orientation" : {"w":0.71655273, "x" : 0.19647217, "y" : 0.6290283, "z" : -0.22833252}, 
-            // "transform" : {"position":{"x":0, "y" : 0, "z" :    // 0}, "rotation" : {"w":1, "x" : 0, "y" : 0, "z" : 0}, "scale" : {"x":1, "y" : 1, "z" : 1}}}
-            for (auto& el : data[gripIdKey_]) 
-            {
-                std::string grip_id = el[deviceIdKey_];
-                const json& state = el["state"];
+            std::string grip_id = el[deviceIdKey_];
+            const json& state = el["state"];
 
-                float qx = state["orientation"]["x"].get<float>();
-                float qy = state["orientation"]["y"].get<float>();
-                float qz = state["orientation"]["z"].get<float>();
-                float qw = state["orientation"]["w"].get<float>();
+            float qx = state["orientation"]["x"].get<float>();
+            float qy = state["orientation"]["y"].get<float>();
+            float qz = state["orientation"]["z"].get<float>();
+            float qw = state["orientation"]["w"].get<float>();
 
-                m_hapticData.orientation[0] = qx;
-                m_hapticData.orientation[1] = qy;
-                m_hapticData.orientation[2] = qz;
-                m_hapticData.orientation[3] = qw;
-                m_hapticData.buttonStatus = state["button"].get<bool>();
-            }
+            m_hapticData.orientation[0] = qx;
+            m_hapticData.orientation[1] = qy;
+            m_hapticData.orientation[2] = qz;
+            m_hapticData.orientation[3] = qw;
+            m_hapticData.buttonStatus = state["button"].get<bool>();
         }
     }
 
     ws.send(request.dump());
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+    cptLoop++;
+    ctime_t endTime = CTime::getRefTime();
+    ctime_t duration = endTime - startTime;
+	summedLoopDuration += duration;
+
+    // If loop is quicker than the target loop speed. Wait here.
+    while (duration < targetTicksPerLoop)
+    {
+        endTime = CTime::getRefTime();
+        duration = endTime - startTime;
+    }
+
+    if (m_logThread)
+    {
+        if (cptLoop % 1000 == 0) {
+            float updateFreq = 1000 * 1000 / ((float)summedLoopDuration); // in Hz
+            std::cout << "DeviceName: " << " | Iteration: " << cptLoop << " | Average haptic loop frequency " << std::to_string(int(updateFreq)) << " Hz" << std::endl;
+            summedLoopDuration = 0;
+        }
+    }
 }
 
 
