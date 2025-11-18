@@ -8,7 +8,6 @@
 #include <SofaHaplyRobotics/Haply_Inverse3Controller.h>
 
 #include <sofa/simulation/AnimateBeginEvent.h>
-#include <sofa/simulation/AnimateEndEvent.h>
 
 #include <sofa/simulation/Node.h>
 #include <sofa/core/visual/VisualParams.h>
@@ -60,9 +59,6 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     , d_dampingForce(initData(&d_dampingForce, 0.0001, "damping", "Default damping applied to the force feedback"))
     
     , d_drawDebug(initData(&d_drawDebug, false, "drawDebug", "Parameter to draw debug information"))
-
-    , d_fullBBmins(initData(&d_fullBBmins, "fullBBmins", "min values of the BBox the tool cover in SOFA frame"))
-    , d_fullBBmaxs(initData(&d_fullBBmaxs, "fullBBmaxs", "max values of the BBox the tool cover in SOFA frame"))
     , l_forceFeedback(initLink("forceFeedBack", "link to the forceFeedBack component, if not set will search through graph and take first one encountered."))
 {
     this->f_listening.setValue(true);
@@ -83,11 +79,11 @@ Haply_Inverse3Controller::~Haply_Inverse3Controller()
 {
     msg_info_when(m_logThread, "Haply_Inverse3Controller") << "kill s_hapticThread";
 
-    if (m_terminateHaptic == false && m_deviceReady)
-    {
-        m_terminateHaptic = true;
-        haptic_thread.join();
-    }
+    //if (m_terminateHaptic == false && m_deviceReady)
+    //{
+    //    m_terminateHaptic = true;
+    //    haptic_thread.join();
+    //}
 
     if (m_terminateCopy == false && m_deviceReady)
     {
@@ -134,12 +130,6 @@ void Haply_Inverse3Controller::init()
         max[i] += posDevice[i];
     }
 
-    d_fullBBmins.setValue(min);
-    d_fullBBmaxs.setValue(max);
-
-    //auto posDevice = d_positionBase.getValue();
-    //d_fullBBmins.setValue((Vec3(-0.301056 + posDevice[0], -0.29919 + posDevice[1], -0.118068 + posDevice[2]))* d_scale.getValue());
-    //d_fullBBmaxs.setValue(Vec3(0.285928 + posDevice[0], 0.16325 + posDevice[1], 0.377896 + posDevice[2]) * d_scale.getValue());
 
     m_logThread = f_printLog.getValue();
 
@@ -157,8 +147,6 @@ void Haply_Inverse3Controller::bwdInit()
 
 void Haply_Inverse3Controller::initDevice()
 {
-	lastPrintTime_ = std::chrono::high_resolution_clock::now();
-    const auto print_delay = std::chrono::milliseconds(100);
     auto current = std::chrono::high_resolution_clock::now();
 
     reconn_setting_t reconn;
@@ -166,7 +154,7 @@ void Haply_Inverse3Controller::initDevice()
     reconn.min_delay = 1000;
     reconn.max_delay = 5000;
     reconn.delay_policy = 2;
-    ws.setReconnect(&reconn);
+    m_ws.setReconnect(&reconn);
 
     m_initDevice = true;
 }
@@ -174,8 +162,8 @@ void Haply_Inverse3Controller::initDevice()
 
 void Haply_Inverse3Controller::disconnect()
 {   
-    if (ws.isConnected()) {
-        ws.close();
+    if (m_ws.isConnected()) {
+        m_ws.close();
     }
 }
 
@@ -187,15 +175,15 @@ bool Haply_Inverse3Controller::createHapticThreads()
     m_terminateCopy = false;
     copy_thread = std::thread(&Haply_Inverse3Controller::CopyData, this, std::ref(this->m_terminateCopy), this);
 
-    ws.onopen = [&]() {
+    m_ws.onopen = [&]() {
         std::cout << "[MyDeviceDriver] WebSocket opened." << std::endl;
         };
 
-    ws.onmessage = [&](const std::string& msg) {
+    m_ws.onmessage = [&](const std::string& msg) {
         HapticsHandling(msg);
         };
 
-    ws.onclose = [&]() {
+    m_ws.onclose = [&]() {
         std::cout << "[MyDeviceDriver] WebSocket closed." << std::endl;
         };
 
@@ -204,7 +192,7 @@ bool Haply_Inverse3Controller::createHapticThreads()
 
 
 void Haply_Inverse3Controller::connect() {
-    ws.open("ws://localhost:10001");
+    m_ws.open("ws://localhost:10001");
 }
 
 
@@ -227,7 +215,7 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
     const Vec3& basePosition = d_positionBase.getValue();
     const Quat& baseOrientation = d_orientationBase.getValue();
     const SReal& scale = d_scale.getValue();
-    const SReal& damping = d_dampingForce.getValue();
+    const float damping = float(d_dampingForce.getValue());
 
     if (data[inverseKey_].empty()) {
         json update_request = {
@@ -236,7 +224,7 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
 
         std::cout << "[MyDeviceDriver] No devices found. Waiting for connection..." << std::endl;
         std::this_thread::sleep_for(1000ms);
-        ws.send(update_request.dump());
+        m_ws.send(update_request.dump());
 
         return;
     }
@@ -359,7 +347,7 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
         }
     }
 
-    ws.send(request.dump());
+    m_ws.send(request.dump());
 
     cptLoop++;
     ctime_t endTime = CTime::getRefTime();
@@ -381,14 +369,6 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
             summedLoopDuration = 0;
         }
     }
-}
-
-
-
-std::unordered_map<std::string, Haply_Inverse3Controller::DeviceState> Haply_Inverse3Controller::getDeviceStates() 
-{
-    std::lock_guard<std::mutex> lock(dataMutex_);
-    return devices_;
 }
 
 
@@ -481,7 +461,6 @@ void Haply_Inverse3Controller::draw(const sofa::core::visual::VisualParams* vpar
     // Debug: Draw end effector position as 3D axis
     const Coord& posDevice = d_posDevice.getValue();	
     vparams->drawTool()->drawFrame(posDevice.getCenter(), posDevice.getOrientation(), sofa::type::Vec3f(0.05f * scale, 0.05f * scale, 0.05f * scale));
-    vparams->drawTool()->drawBoundingBox(d_fullBBmins.getValue(), d_fullBBmaxs.getValue());
 
     // Debug: Draw force feedback vector
     sofa::type::RGBAColor color4(1.0f, 0.0, 0.0f, 1.0);
