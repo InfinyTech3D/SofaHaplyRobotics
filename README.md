@@ -9,7 +9,7 @@
 ## Description
 
 **Inverse3** by **Haply Robotics** is a compact, high-performance haptic device that provides full 6-DoF motion input with fast, stable force feedback. 
-Designed for simulation, teleoperation, and advanced human–machine interaction, it allows users to feel and control virtual objects with exceptional precision. 
+Designed for simulation, teleoperation, and advanced humanâ€“machine interaction, it allows users to feel and control virtual objects with exceptional precision. 
 Its lightweight design, interchangeable tool grips, and broad software integration support make it ideal for research, training, and interactive biomechanical simulation. 
 For further details, please visit the [Haply Robotics website](https://www.haply.co/inverse3).
 
@@ -17,11 +17,11 @@ For further details, please visit the [Haply Robotics website](https://www.haply
 
 ## Features
 The real device is represented virtually in SOFA using rigid dof position of the device. Position, orientation, scale of the device can be changed in the simulation scene.
-It can be interafced with LCPForceFeedBack SOFA component to compute and send force feedback to the device.
+It can be interfaced with LCPForceFeedBack SOFA component to compute and send force feedback to the device.
 During the simulation, 2 haptics thread are used to communicate with the Haptic device at high frequency (~3kHz could be easily increased at 5kHz). It is used to retrieve the tool information and send the force feedback using SOFA lCPForceFeedback mechanism. 
 Then the second thread running as well at high frequency is used to copy the tool information into a data which will be used by the simulation thread.
 
-- Comaptible with SOFA v25.06 (tested on Windows only, Linux support to be done)
+- Compatible with SOFA v25.06 (tested on Windows only, Linux support to be done)
 - Support main Inverse3 device, simple Verse Grip tool
 - Support of wireless verse grip has been successfully tested but not yet integrated in the plugin (due to hardware availability limitation)
 - Multiple demo scenes for 1 device in XML format
