@@ -113,24 +113,6 @@ void Haply_Inverse3Controller::init()
         msg_warning() << "No forceFeedBack component found in the scene. Only the motion of the haptic tool will be simulated.";
     }
 
-
-    // Bounding box computed during execution
-    const Quat& orientationBase = d_orientationBase.getValue();
-    auto posDevice = d_positionBase.getValue();
-    const SReal& scale = d_scale.getValue();
-
-    Vec3 min = { -0.301056, -0.29919, -0.118068 };
-    Vec3 max = { 0.285928, 0.16325, 0.377896 };
-    min = orientationBase.rotate(min * scale);
-    max = orientationBase.rotate(max * scale);
-
-    for (int i = 0; i < 3; ++i)
-    {
-        min[i] += posDevice[i];
-        max[i] += posDevice[i];
-    }
-
-
     m_logThread = f_printLog.getValue();
 
     initDevice();
@@ -277,11 +259,9 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
             if (m_forceFeedback)
             {
                 m_forceFeedback->computeForce(posInSWorld[0], posInSWorld[1], posInSWorld[2], 0, 0, 0, 0, forceInSWorld[0], forceInSWorld[1], forceInSWorld[2]);
-                //std::cout << "forceInSWorld: " << forceInSWorld[0] << " " << forceInSWorld[1] << " " << forceInSWorld[2];
 
                 // project the force in the device frame
                 forceInDevice = baseOrientation.inverseRotate(forceInSWorld);
-                //std::cout << " | forceInDevice: " << forceInDevice[0] << " " << forceInDevice[1] << " " << forceInDevice[2];
                 bool changed = false;
                 bool isInContact = false;
                 for (int i = 0; i < 3; ++i)
@@ -298,26 +278,26 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
                 }
 
                 if (changed)
-                    std::cout << "Max force: " << baseOrientation.inverseRotate(forceInSWorld) << std::endl;
+                    msg_warning() << "Max force reached: " << baseOrientation.inverseRotate(forceInSWorld);
 
-                json Forces_obj = { {"x", 0}, {"y", 0}, {"z", 0} };
+                json forces_obj = { {"x", 0}, {"y", 0}, {"z", 0} };
                 // Send the current force value to the device
                 if (isInContact)
                 {
                     // Damping is an effective tool for smoothing velocityand thus can mitigate buzzing.A typical damping formula adds a retarding
                     // force proportional to the velocity of the device
                     float retardingForce[3] = { -Vx * damping, -Vy * damping, -Vz * damping };
-                    //std::cout << "retardingForce: " << retardingForce[0] << " " << retardingForce[1] << " " << retardingForce[2] << std::endl;
 
-                    Forces_obj = { {"x", forceInDevice[0] + retardingForce[0]}, {"y", forceInDevice[1] + retardingForce[1]}, {"z", forceInDevice[2] + retardingForce[2]} };
+                    forces_obj = { {"x", forceInDevice[0] + retardingForce[0]}, {"y", forceInDevice[1] + retardingForce[1]}, {"z", forceInDevice[2] + retardingForce[2]} };
                 }
 
                 request[inverseKey_].push_back({
                     {deviceIdKey_, device_id},
-                    {"commands", {{"set_cursor_force", {{"values", Forces_obj}}}}}
+                    {"commands", {{"set_cursor_force", {{"values", forces_obj}}}}}
                 });
             }
 
+            // copy force for debug draw
             m_hapticData.force[0] = forceInDevice[0];
             m_hapticData.force[1] = forceInDevice[1];
             m_hapticData.force[2] = forceInDevice[2];
@@ -365,7 +345,7 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
     {
         if (cptLoop % 1000 == 0) {
             float updateFreq = 1000 * 1000 / ((float)summedLoopDuration); // in Hz
-            std::cout << "DeviceName: " << " | Iteration: " << cptLoop << " | Average haptic loop frequency " << std::to_string(int(updateFreq)) << " Hz" << std::endl;
+            msg_info() << "DeviceName: " << " | Iteration: " << cptLoop << " | Average haptic loop frequency " << std::to_string(int(updateFreq)) << " Hz";
             summedLoopDuration = 0;
         }
     }
@@ -447,11 +427,8 @@ void Haply_Inverse3Controller::handleEvent(core::objectmodel::Event* event)
 
 void Haply_Inverse3Controller::draw(const sofa::core::visual::VisualParams* vparams)
 {
-    if (!m_deviceReady)
-        return;
-
     // If true draw debug information
-    if (!d_drawDebug.getValue())
+    if (!m_deviceReady || !d_drawDebug.getValue())
         return;
 
     // Debug: Draw device frames
