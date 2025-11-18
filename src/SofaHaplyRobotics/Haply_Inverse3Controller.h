@@ -37,13 +37,6 @@ public:
     using Vec3 = sofa::type::Vec3d;
     using Quat = sofa::type::Quat<SReal>;
 
-    struct DeviceState {
-        std::vector<double> position;
-        std::vector<double> velocity;
-        std::vector<double> angles;
-        std::vector<double> angularVelocity;
-    };
-
 
     /// default constructor
     Haply_Inverse3Controller();
@@ -68,11 +61,6 @@ public:
     /// Method to notify that simulation is running
     void setSimulationStarted() { m_simulationStarted = true; }
 
-
-    
-    
-    std::unordered_map<std::string, DeviceState> getDeviceStates();
-
 protected:
     /// Internal method to init specific info. Called by init
     virtual void initDevice();
@@ -82,15 +70,14 @@ protected:
 
 	/// Main method to disconnect from the device
     void disconnect();
-    	
+    
+	/// Method to create and start haptic thread. Will be called by bwdInit
     bool createHapticThreads();
 
     /// Main method from the SOFA simulation call at each simulation step begin.
     void simulation_updatePosition();
+
    
-    void updateButtonStates() const {};
-
-
 public:
     /// Data to store Information received by HW device
     Data<std::string> d_hapticIdentity;
@@ -103,13 +90,11 @@ public:
     Data<bool> d_handleButton; ///< Bool value showing if handle button is pressed
     Data<Coord> d_posDevice; ///< position of the device end-effector in SOFA Frame. Take into account @sa d_positionBase, @sa d_orientationBase and @sa d_scale
     Data<Vec3> d_rawForceDevice; ///< For debug: raw values sent to the device in the device frame
-    Data<SReal> d_dampingForce; ///< Default scale applied to the device Coordinates
+	Data<SReal> d_dampingForce; ///< Damping value, it is a factor applied to the velocity and substracted to force feedback to avoid oscillations. 
 
     /// Data parameter to draw debug information
     Data<bool> d_drawDebug;
 
-    Data<Vec3> d_fullBBmins;
-    Data<Vec3> d_fullBBmaxs;
 
     // Pointer to the forceFeedBack component
     ForceFeedback::SPtr m_forceFeedback;
@@ -148,16 +133,14 @@ private:
     std::atomic<bool> m_terminateCopy = true;
 
     /// haptic thread c++ object
-    std::thread haptic_thread;
+    //std::thread haptic_thread;
     std::thread copy_thread;
 
-    hv::WebSocketClient ws;
-    std::string url_;
-    std::chrono::milliseconds printDelay_{ 100 };
-    std::chrono::time_point<std::chrono::high_resolution_clock> lastPrintTime_;
+	/// WebSocket client
+    hv::WebSocketClient m_ws;
 
-    std::mutex dataMutex_;
-    std::unordered_map<std::string, DeviceState> devices_;
+	// Todo : protect data with mutex
+    //std::mutex dataMutex_;
 
     static const std::string inverseKey_;
     static const std::string deviceIdKey_;
