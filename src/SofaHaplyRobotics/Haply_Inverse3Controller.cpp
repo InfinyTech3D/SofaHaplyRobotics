@@ -8,21 +8,14 @@
 #include <SofaHaplyRobotics/Haply_Inverse3Controller.h>
 
 #include <sofa/simulation/AnimateBeginEvent.h>
-
 #include <sofa/simulation/Node.h>
 #include <sofa/core/visual/VisualParams.h>
-#include <iomanip> 
 #include <sofa/core/ObjectFactory.h>
 
 #include <sofa/helper/system/thread/CTime.h>
-#include <chrono>
 
 #include <libhv.h>
-//#include <external/libhv.h>
 #include <nlohmann/json.hpp>
-#include <cstdio>
-#include <string>
-#include <vector>
 
 
 using namespace std::chrono_literals;
