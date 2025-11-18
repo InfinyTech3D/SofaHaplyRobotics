@@ -71,7 +71,6 @@ Full documentation about the device installation and setup is available on the [
 - **external:**
 	- Haply Robotics C++ headers needed to communicate with the device
 
-	- 
 ## License
 This work is dual-licensed under either [GPL](https://github.com/InfinyTech3D/SofaHaplyRobotics/blob/main/LICENSE.md) or Commercial License. 
 For commercial license request, please contact us by email at contact@infinytech3d.com
