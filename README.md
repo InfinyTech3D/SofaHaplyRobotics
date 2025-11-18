@@ -1,5 +1,5 @@
 # SOFA HaplyRobotics Inverse3 Plugin
-SOFA plugin for Haply Robotics Inverse3 device
+
 [![Documentation](https://img.shields.io/badge/doc-on_GitHub-green.svg)](https://github.com/InfinyTech3D/SofaHaplyRobotics/tree/main/doc)
 [![Support](https://img.shields.io/badge/support-on_GitHub_Discussions-blue.svg)](https://github.com/sofa-framework/sofa/discussions/categories/haptics)
 [![Discord](https://img.shields.io/badge/chat-on_Discord-darkred.svg)](https://discord.gg/G63t3a8Ra6)
@@ -8,10 +8,12 @@ SOFA plugin for Haply Robotics Inverse3 device
 
 ## Description
 
-*Inverse3* by Haply Robotics is a compact, high-performance haptic device that provides full 6-DoF motion input with fast, stable force feedback. 
+**Inverse3** by **Haply Robotics** is a compact, high-performance haptic device that provides full 6-DoF motion input with fast, stable force feedback. 
 Designed for simulation, teleoperation, and advanced human–machine interaction, it allows users to feel and control virtual objects with exceptional precision. 
 Its lightweight design, interchangeable tool grips, and broad software integration support make it ideal for research, training, and interactive biomechanical simulation. 
 For further details, please visit the [Haply Robotics website](https://www.haply.co/inverse3).
+
+<img align="center" width="60%" height="auto" src="./doc/Inverse3_picture.jpg">
 
 ## Features
 The real device is represented virtually in SOFA using rigid dof position of the device. Position, orientation, scale of the device can be changed in the simulation scene.
@@ -34,7 +36,10 @@ Then the second thread running as well at high frequency is used to copy the too
 - [ ] Add regression_test using a haptic emulator
 - [ ] Add full visualisation of the haptic device in the scene
 
-- [ ] 
+
+<img align="center" width="60%" height="auto" src="./doc/device_integration_01.jpg">
+
+
 ## Installation and Setup
 
 # Setup the device on your computer (Windows):
