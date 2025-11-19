@@ -129,7 +129,9 @@ void Haply_Inverse3Controller::initDevice()
     reconn.min_delay = 1000;
     reconn.max_delay = 5000;
     reconn.delay_policy = 2;
-    m_ws.setReconnect(&reconn);
+
+    m_ws = std::make_unique<WebSocketClient>();
+    m_ws->setReconnect(&reconn);
 
     m_initDevice = true;
 }
@@ -137,8 +139,13 @@ void Haply_Inverse3Controller::initDevice()
 
 void Haply_Inverse3Controller::disconnect()
 {   
-    if (m_ws.isConnected()) {
-        m_ws.close();
+    if (m_ws->isConnected()) {
+        m_ws->close();
+    }
+
+    if (m_ws != nullptr)
+    {
+        m_ws.release();
     }
 }
 
@@ -150,15 +157,15 @@ bool Haply_Inverse3Controller::createHapticThreads()
     m_terminateCopy = false;
     copy_thread = std::thread(&Haply_Inverse3Controller::CopyData, this, std::ref(this->m_terminateCopy), this);
 
-    m_ws.onopen = [&]() {
+    m_ws->onopen = [&]() {
         std::cout << "[MyDeviceDriver] WebSocket opened." << std::endl;
         };
 
-    m_ws.onmessage = [&](const std::string& msg) {
+    m_ws->onmessage = [&](const std::string& msg) {
         HapticsHandling(msg);
         };
 
-    m_ws.onclose = [&]() {
+    m_ws->onclose = [&]() {
         std::cout << "[MyDeviceDriver] WebSocket closed." << std::endl;
         };
 
@@ -167,7 +174,7 @@ bool Haply_Inverse3Controller::createHapticThreads()
 
 
 void Haply_Inverse3Controller::connect() {
-    m_ws.open("ws://localhost:10001");
+    m_ws->open("ws://localhost:10001");
 }
 
 
@@ -199,7 +206,7 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
 
         std::cout << "[MyDeviceDriver] No devices found. Waiting for connection..." << std::endl;
         std::this_thread::sleep_for(1000ms);
-        m_ws.send(update_request.dump());
+        m_ws->send(update_request.dump());
 
         return;
     }
@@ -320,7 +327,7 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
         }
     }
 
-    m_ws.send(request.dump());
+    m_ws->send(request.dump());
 
     cptLoop++;
     ctime_t endTime = CTime::getRefTime();

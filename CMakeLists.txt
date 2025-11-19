@@ -34,7 +34,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE "-DSOFA_BUILD_SOFAHAPLYROBOTI
 
 # Link the plugin library to its dependencies (other libraries).
 target_link_libraries(${PROJECT_NAME} PUBLIC Sofa.Component.Controller Sofa.Component.Haptics)
-target_link_libraries(${PROJECT_NAME} PUBLIC hv_static nlohmann_json::nlohmann_json)
+target_link_libraries(${PROJECT_NAME} PRIVATE hv_static nlohmann_json::nlohmann_json)
 
 target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>")
 target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external>")
