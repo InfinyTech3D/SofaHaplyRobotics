@@ -10,11 +10,14 @@
 #include <sofa/type/Vec.h>
 #include <sofa/component/controller/Controller.h>
 #include <mutex>
-#include <libhv.h>
-
 
 //force feedback
 #include <sofa/component/haptics/ForceFeedback.h>
+
+namespace hv
+{
+    class WebSocketClient;
+}
 
 namespace sofa::HaplyRobotics
 {
@@ -137,7 +140,7 @@ private:
     std::thread copy_thread;
 
 	/// WebSocket client
-    hv::WebSocketClient m_ws;
+    std::unique_ptr<hv::WebSocketClient> m_ws;
 
 	// Todo : protect data with mutex
     //std::mutex dataMutex_;
