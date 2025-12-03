@@ -40,7 +40,7 @@
     <CollisionResponse name="response" response="FrictionContactConstraint" />
     <LocalMinDistance name="proximity" alarmDistance="0.2" contactDistance="0.1" angleCone="0.1" />
 
-    <Haply_Inverse3Controller name="Device" scale="50.0" drawDebug="0" positionBase="0 6 -4" orientationBase="0 0 -0.7071068 0.7071068 " damping="0.001"/>
+    <Haply_Inverse3Controller name="Device" scale="60.0" drawDebug="0" positionBase="0 6 -4" orientationBase="0 0 -0.7071068 0.7071068 " damping="0.001" printLog="1"/>
     <MechanicalObject template="Rigid3d" name="HaplyMO" position="@Device.positionDevice" />
 	
     <Node name="Instrument" >
