@@ -38,7 +38,7 @@
     <CollisionResponse name="response" response="FrictionContactConstraint" />
     <LocalMinDistance name="proximity" alarmDistance="0.1" contactDistance="0.01" angleCone="0.1" />
 
-    <Haply_Inverse3Controller name="Device" scale="30.0" drawDebug="0" positionBase="0 2 0"/>
+    <Haply_Inverse3Controller name="Device" scale="50.0" drawDebug="0" positionBase="-2 8 0"/>
     <MechanicalObject template="Rigid3d" name="HaplyMO" position="@Device.positionDevice" />
 	
     <Node name="Instrument" >
@@ -54,7 +54,7 @@
 		
 		<Node name="VisuTool" >
             <MeshOBJLoader name="meshLoader_1" filename="./mesh/dental_instrument.obj" handleSeams="1"
-                rotation="-90 90 0" translation="0 -3.5 0.3"/>
+                rotation="-90 -90 0" translation="0 -3.5 0.3"/>
             <OglModel name="InstrumentVisualModel" src="@meshLoader_1" color="1.0 0.2 0.2 1.0" />
             <RigidMapping name="MM->VM mapping" input="@instrumentState" output="@InstrumentVisualModel" />
         </Node>
