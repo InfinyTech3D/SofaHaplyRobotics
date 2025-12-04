@@ -74,6 +74,24 @@ Full documentation about the device installation and setup is available on the [
 - **external:**
 	- Haply Robotics C++ headers needed to communicate with the device
 
+### Scene Examples
+Several examples ready to be used are provided in the plugin under the scenes folder. Below are short descriptions and illustrations of them.
+Note that the illustrations have been recorded from the Unity integration. Therefore, the rendering might vary from your setup but not the behavior nor the haptic force feedback feeling.  
+- **Inverse3-01-DeviceMotion:** This first example is just showing how the virtual 3D device is mapped to the real device. This is the minimal scene to test if the hardware and all software are well configured. The virtual device should follow the move the Inverse3 + the Verse Grip.
+
+|<img align="center" height="auto" src="https://github.com/InfinyTech3D/SofaHaplyRobotics/tree/main/doc/Inverse3-02-RigidSphere.gif">|<img align="center" height="auto" src="https://github.com/InfinyTech3D/SofaHaplyRobotics/tree/main/doc/Inverse3-03-DeformableSphere.gif">|
+|--|--|
+| **Inverse3-02-RigidSphere:** Interaction between the Inverse3 and a rigid sphere | **Inverse3-03-DeformableSphere:** Interaction between the Inverse3 and a deformable sphere simulated using FEM|
+
+|<img align="center" height="auto" src="https://github.com/InfinyTech3D/SofaHaplyRobotics/tree/main/doc/Inverse3-04-RigidCube.gif">|<img align="center" height="auto" src="https://github.com/InfinyTech3D/SofaHaplyRobotics/tree/main/doc/Inverse3-05-DeformableCubes.gif">|
+|--|--|
+| **Inverse3-04-RigidCube:** Interaction between the Inverse3 and a rigid Cube | **Inverse3-05-DeformableCubes:** Interaction between the Inverse3 and 2 deformable Cubes simulated using FEM with different stiffness |
+
+|<img align="center" height="auto" src="https://github.com/InfinyTech3D/SofaHaplyRobotics/tree/main/doc/Inverse3-06-RigidSkull.gif">|<img align="center" height="auto" src="https://github.com/InfinyTech3D/SofaHaplyRobotics/tree/main/doc/Inverse3-07-DeformableLiver.gif">|
+|--|--|
+| **Inverse3-06-RigidSkull:** A more advanced simulation interaction between a rigid skull with sharp edges and the Inverse3 | **Inverse3-07-DeformableLiver:** This example shows an advanced simulation between a 3D mesh of a liver simulated using FEM and the Inverse3 |
+
+
 ## License
 This work is dual-licensed under either [GPL](https://github.com/InfinyTech3D/SofaHaplyRobotics/blob/main/LICENSE.md) or Commercial License. 
 For commercial license request, please contact us by email at contact@infinytech3d.com
