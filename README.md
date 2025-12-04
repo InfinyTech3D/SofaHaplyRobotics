@@ -79,7 +79,15 @@ Several examples ready to be used are provided in the plugin under the scenes fo
 Note that the illustrations have been recorded from the Unity integration. Therefore, the rendering might vary from your setup but not the behavior nor the haptic force feedback feeling.  
 - **Inverse3-01-DeviceMotion:** This first example is just showing how the virtual 3D device is mapped to the real device. This is the minimal scene to test if the hardware and all software are well configured. The virtual device should follow the move the Inverse3 + the Verse Grip.
 
-|<img align="center" width="45%" height="auto" src="https://github.com/InfinyTech3D/SofaHaplyRobotics/blob/add_doc_examples/doc/Inverse3-02-RigidSphere.gif">|<img align="center" height="auto" width="45%" src="https://github.com/InfinyTech3D/SofaHaplyRobotics/blob/add_doc_examples/doc/Inverse3-03-DeformableSphere.gif">|
+
+<table>
+<tr>
+<th style="width:10%"><img align="center" height="auto" src="https://github.com/InfinyTech3D/SofaHaplyRobotics/blob/add_doc_examples/doc/Inverse3-02-RigidSphere.gif"></th>
+<th style="width:50%"><img align="center" height="auto"  src="https://github.com/InfinyTech3D/SofaHaplyRobotics/blob/add_doc_examples/doc/Inverse3-03-DeformableSphere.gif"></th>
+</tr>
+</table>
+
+|||
 |--|--|
 | **Inverse3-02-RigidSphere:** Interaction between the Inverse3 and a rigid sphere | **Inverse3-03-DeformableSphere:** Interaction between the Inverse3 and a deformable sphere simulated using FEM|
 
