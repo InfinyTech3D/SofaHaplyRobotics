@@ -6,7 +6,15 @@ sofa_find_package(Sofa.Component.Haptics REQUIRED)
 
 add_definitions(-DUNICODE -D_UNICODE)
 
-add_subdirectory(external)
+# adding external dependencies
+if(NOT TARGET nlohmann_json)
+    add_subdirectory(external/json)
+else()
+    message(STATUS "## ${PROJECT_NAME}: nlohmann_json already included in the project.")
+endif()
+
+add_subdirectory(external/libhv)
+
 
 set(SOFAHAPLYROBOTICS_SRC_DIR src/SofaHaplyRobotics)
 set(HEADER_FILES
