@@ -105,7 +105,9 @@ public:
     Data<SReal> d_scale; ///< Default scale applied to the device Coordinates
 
     /// Output Data
-    Data<bool> d_handleButton; ///< Bool value showing if handle button is pressed
+    Data<bool> d_handleButtonA; ///< Bool value showing if First button is pressed
+    Data<bool> d_handleButtonB; ///< Bool value showing if Second button is pressed
+    Data<bool> d_handleButtonC; ///< Bool value showing if Third button is pressed
     Data<Coord> d_posDevice; ///< position of the device end-effector in SOFA Frame. Take into account @sa d_positionBase, @sa d_orientationBase and @sa d_scale
     Data<Vec3> d_rawForceDevice; ///< For debug: raw values sent to the device in the device frame
 	Data<SReal> d_dampingForce; ///< Damping value, it is a factor applied to the velocity and substracted to force feedback to avoid oscillations. 
@@ -127,7 +129,9 @@ public:
         float position[3]; // raw position of the end-effector
         float orientation[4]; // raw quaternion of the handle
         float force[3]; // debug raw force vector sent to the device
-        bool buttonStatus; // button press status
+        bool buttonA; // button A press status
+        bool buttonB; // button B press status
+        bool buttonC; // button C press status
     };
 
     /// Data belonging to the haptic thread only
@@ -163,6 +167,7 @@ private:
     static const std::string inverseKey_;
     static const std::string deviceIdKey_;
     static const std::string gripIdKey_;
+    static const std::string wirelessGripIdKey_;
 };
 
 } // namespace sofa::HaplyRobotics
