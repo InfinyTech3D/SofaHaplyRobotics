@@ -43,7 +43,6 @@ namespace sofa::HaplyRobotics
 const std::string Haply_Inverse3Controller::inverseKey_ = "inverse3";
 const std::string Haply_Inverse3Controller::deviceIdKey_ = "device_id";
 const std::string Haply_Inverse3Controller::gripIdKey_ = "verse_grip";
-const std::string Haply_Inverse3Controller::wirelessGripIdKey_ = "wireless_verse_grip";
 
 
 using namespace sofa::helper::system::thread;
@@ -60,9 +59,7 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     , d_orientationBase(initData(&d_orientationBase, Quat(0, 0, 0, 1), "orientationBase", "Orientation of the device base in the SOFA scene world coordinates"))    
     , d_scale(initData(&d_scale, 1.0, "scale", "Default scale applied to the Device coordinates"))    
     
-    , d_handleButtonA(initData(&d_handleButtonA, false, "handleButtonA", "Bool value showing if first button is pressed"))
-    , d_handleButtonB(initData(&d_handleButtonB, false, "handleButtonA", "Bool value showing if second button is pressed"))
-    , d_handleButtonC(initData(&d_handleButtonC, false, "handleButtonA", "Bool value showing if third button is pressed"))
+    , d_handleButton(initData(&d_handleButton, false, "handleButton", "Bool value showing if handle button is pressed"))
     , d_posDevice(initData(&d_posDevice, "positionDevice", "position of the device end-effector in SOFA frame"))
     , d_rawForceDevice(initData(&d_rawForceDevice, "rawForceDevice", "For debug: raw values sent to the device in the device frame"))
     , d_dampingForce(initData(&d_dampingForce, 0.0001, "damping", "Default damping applied to the force feedback"))
@@ -76,17 +73,10 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     d_hapticIdentity.setGroup("Infos");
 
     d_posDevice.setReadOnly(true);
-    d_handleButtonA.setReadOnly(true);
-    d_handleButtonB.setReadOnly(true);
-    d_handleButtonC.setReadOnly(true);
-    this->addAlias(&this->d_handleButtonA, "handleButton");
+    d_handleButton.setReadOnly(true);
     d_rawForceDevice.setReadOnly(true);
-
     d_posDevice.setGroup("Device Status");
-    d_handleButtonA.setGroup("Device Status");
-    d_handleButtonB.setGroup("Device Status");
-    d_handleButtonC.setGroup("Device Status");
-
+    d_handleButton.setGroup("Device Status");
     d_rawForceDevice.setGroup("Device Status");
 }
 
@@ -346,31 +336,9 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
             m_hapticData.orientation[1] = qy;
             m_hapticData.orientation[2] = qz;
             m_hapticData.orientation[3] = qw;
-            m_hapticData.buttonA = state["button"].get<bool>();
-            m_hapticData.buttonB = false;
-            m_hapticData.buttonC = false;
+            m_hapticData.buttonStatus = state["button"].get<bool>();
         }
     }
-	else if (data.contains(wirelessGripIdKey_))
-	{
-        for (auto& el : data[wirelessGripIdKey_])
-        {
-            const json& state = el["state"];
-
-            float qx = state["orientation"]["x"].get<float>();
-            float qy = state["orientation"]["y"].get<float>();
-            float qz = state["orientation"]["z"].get<float>();
-            float qw = state["orientation"]["w"].get<float>();
-
-            m_hapticData.orientation[0] = qx;
-            m_hapticData.orientation[1] = qy;
-            m_hapticData.orientation[2] = qz;
-            m_hapticData.orientation[3] = qw;
-            m_hapticData.buttonA = state["button"]["a"].get<bool>();
-            m_hapticData.buttonB = state["button"]["b"].get<bool>();
-            m_hapticData.buttonC = state["button"]["c"].get<bool>();
-        }
-	}
 
     m_ws->send(request.dump());
 
@@ -437,9 +405,7 @@ void Haply_Inverse3Controller::simulation_updatePosition()
     Vec3 position = { m_simuData.position[0], m_simuData.position[1], m_simuData.position[2] };
     
     // Update Data on button status
-    d_handleButtonA.setValue(m_simuData.buttonA);
-    d_handleButtonB.setValue(m_simuData.buttonB);
-    d_handleButtonC.setValue(m_simuData.buttonC);
+    d_handleButton.setValue(m_simuData.buttonStatus);
 
     Quat ori = { m_simuData.orientation[0], m_simuData.orientation[1], m_simuData.orientation[2], m_simuData.orientation[3] };
 
@@ -488,7 +454,7 @@ void Haply_Inverse3Controller::draw(const sofa::core::visual::VisualParams* vpar
 
     // Debug: Draw force feedback vector
     sofa::type::RGBAColor color4(1.0f, 0.0, 0.0f, 1.0);
-    if (d_handleButtonA.getValue())
+    if (d_handleButton.getValue())
     {
         color4 = sofa::type::RGBAColor(0.0f, 1.0, 0.0f, 1.0);
     }
