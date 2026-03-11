@@ -25,6 +25,8 @@
 
 #include <string>
 #include <mutex>
+#include <thread>
+#include <atomic>
 
 namespace sofa::HaplyRobotics
 {
