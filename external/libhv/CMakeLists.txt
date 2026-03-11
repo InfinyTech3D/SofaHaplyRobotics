@@ -13,6 +13,9 @@ FetchContent_Declare(
 )
 
 add_compile_options(${HAPLY_EXTERNAL_COMPILE_OPTIONS})
+# Enable PIC for static libraries
+set(CMAKE_POSITION_INDEPENDENT_CODE ON CACHE BOOL "Build with -fPIC")
+
 
 set(BUILD_SHARED OFF CACHE INTERNAL "")
 set(BUILD_EXAMPLES OFF CACHE INTERNAL "")
