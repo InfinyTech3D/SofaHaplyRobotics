@@ -23,6 +23,8 @@
 #include <sofa/type/Vec.h>
 #include <sofa/component/controller/Controller.h>
 #include <mutex>
+#include <thread>
+#include <atomic>
 
 //force feedback
 #include <sofa/component/haptics/ForceFeedback.h>
