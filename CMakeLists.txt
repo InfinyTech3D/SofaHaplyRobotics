@@ -21,8 +21,10 @@
 cmake_minimum_required(VERSION 3.12)
 project(SofaHaplyRobotics VERSION 0.2)
 
-sofa_find_package(Sofa.Component.Controller REQUIRED)
-sofa_find_package(Sofa.Component.Haptics REQUIRED)
+include(cmake/environment.cmake)
+
+find_package(Sofa.Component.Controller REQUIRED)
+find_package(Sofa.Component.Haptics REQUIRED)
 
 add_definitions(-DUNICODE -D_UNICODE)
 
