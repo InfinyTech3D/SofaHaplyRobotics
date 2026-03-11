@@ -54,7 +54,7 @@ set(SOURCE_FILES
     ${SOFAHAPLYROBOTICS_SRC_DIR}/initSofaHaplyRoboticsPlugin.cpp
 )
 
-set(README_FILES Readme.md)
+set(README_FILES README.md)
 
 # Create the plugin library.
 add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES} ${README_FILES})
