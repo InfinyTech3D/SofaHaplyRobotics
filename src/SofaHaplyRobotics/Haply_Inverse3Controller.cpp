@@ -42,8 +42,8 @@ namespace sofa::HaplyRobotics
 // Static constants
 const std::string Haply_Inverse3Controller::inverseKey_ = "inverse3";
 const std::string Haply_Inverse3Controller::deviceIdKey_ = "device_id";
-const std::string Haply_Inverse3Controller::gripIdKey_ = "verse_grip";
-const std::string Haply_Inverse3Controller::wirelessGripIdKey_ = "wireless_verse_grip";
+const std::string Haply_Inverse3Controller::gripIdKey_ = "verse_grip"; // Refered as "VerseGrip Quill" on Haply developer doc.
+const std::string Haply_Inverse3Controller::wirelessGripIdKey_ = "wireless_verse_grip"; // Refered as "VerseGrip Stylus" on Haply developer doc.
 
 
 using namespace sofa::helper::system::thread;
@@ -60,9 +60,9 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     , d_orientationBase(initData(&d_orientationBase, Quat(0, 0, 0, 1), "orientationBase", "Orientation of the device base in the SOFA scene world coordinates"))    
     , d_scale(initData(&d_scale, 1.0, "scale", "Default scale applied to the Device coordinates"))    
     
-    , d_handleButtonA(initData(&d_handleButtonA, false, "handleButtonA", "Bool value showing if first button is pressed"))
-    , d_handleButtonB(initData(&d_handleButtonB, false, "handleButtonA", "Bool value showing if second button is pressed"))
-    , d_handleButtonC(initData(&d_handleButtonC, false, "handleButtonA", "Bool value showing if third button is pressed"))
+    , d_handleButtonA(initData(&d_handleButtonA, false, "handleButtonA", "Bool value returning if VerseGrip Stylus first button (resp. VerseGrip Quill single button) is pressed."))
+    , d_handleButtonB(initData(&d_handleButtonB, false, "handleButtonB", "Bool value returning if VerseGrip Stylus second button is pressed"))
+    , d_handleButtonC(initData(&d_handleButtonC, false, "handleButtonC", "Bool value returning if VerseGrip Stylus calibrate button is pressed"))
     , d_posDevice(initData(&d_posDevice, "positionDevice", "position of the device end-effector in SOFA frame"))
     , d_rawForceDevice(initData(&d_rawForceDevice, "rawForceDevice", "For debug: raw values sent to the device in the device frame"))
     , d_dampingForce(initData(&d_dampingForce, 0.0001, "damping", "Default damping applied to the force feedback"))
@@ -327,7 +327,7 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
         }
     }
 
-    if (data.contains(gripIdKey_)) 
+    if (data.contains(gripIdKey_) && !data[gripIdKey_].empty())
     {
         // example of grip data
         // grip_id: 61576 -> {"button":false, "hall" : 1, "orientation" : {"w":0.71655273, "x" : 0.19647217, "y" : 0.6290283, "z" : -0.22833252}, 
@@ -351,8 +351,11 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
             m_hapticData.buttonC = false;
         }
     }
-	else if (data.contains(wirelessGripIdKey_))
+	else if (data.contains(wirelessGripIdKey_) && !data[wirelessGripIdKey_].empty())
 	{
+		// example of wireless grip data
+        // {"device_id":"1534","state":{"battery_level":0.55833346,"battery_voltage":3.935,"buttons":{"a":false,"b":false,"c":false},"hall":18,"orientation":{"w":-0.02947998, "x":-0.22390747, "y" : 0.65689087, "z" : 0.71691895},
+        // "transform":{"position":{"x":0, "y" : 0, "z" : 0}, "rotation" : {"w":1, "x" : 0, "y" : 0, "z" : 0}, "scale" : {"x":1, "y" : 1, "z":1}}},"status":{"awake":true,"connected":true,"ready":true}}
         for (auto& el : data[wirelessGripIdKey_])
         {
             const json& state = el["state"];
@@ -366,9 +369,9 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
             m_hapticData.orientation[1] = qy;
             m_hapticData.orientation[2] = qz;
             m_hapticData.orientation[3] = qw;
-            m_hapticData.buttonA = state["button"]["a"].get<bool>();
-            m_hapticData.buttonB = state["button"]["b"].get<bool>();
-            m_hapticData.buttonC = state["button"]["c"].get<bool>();
+            m_hapticData.buttonA = state["buttons"]["a"].get<bool>();
+            m_hapticData.buttonB = state["buttons"]["b"].get<bool>();
+            m_hapticData.buttonC = state["buttons"]["c"].get<bool>();
         }
 	}
 
