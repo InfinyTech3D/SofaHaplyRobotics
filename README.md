@@ -66,7 +66,7 @@ Full documentation about the device installation and setup is available on the [
 ## Architecture
 - **doc:** 
 	- Documentation and screenshots of the exampples
-- **scenes:**
+- **examples:**
     - Various simple demo scenes
     - Mesh needed by simulations
 - **src/SofaHaplyRobotics:**
