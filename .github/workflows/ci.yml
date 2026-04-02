@@ -6,6 +6,9 @@ on:
       - main
       - master
 
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
 jobs:
   build-and-test:
     name: Run on ${{ matrix.os }} with SOFA ${{ matrix.sofa_branch }}
