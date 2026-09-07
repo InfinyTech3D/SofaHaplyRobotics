@@ -48,9 +48,11 @@ const std::string Haply_Inverse3Controller::wirelessGripIdKey_ = "wireless_verse
 
 using namespace sofa::helper::system::thread;
 
-const int Haply_Inverse3ControllerClass = core::RegisterObject("Driver allowing interfacing with Haptic Haply Robotics Inverse3 device.")
-    .add< Haply_Inverse3Controller >()
-    ;
+void registerHaply_Inverse3Controller(sofa::core::ObjectFactory* factory)
+{
+    factory->registerObjects(core::ObjectRegistrationData("Driver allowing interfacing with Haptic Haply Robotics Inverse3 device.")
+        .add< Haply_Inverse3Controller >());
+}
 
 
 //constructeur
