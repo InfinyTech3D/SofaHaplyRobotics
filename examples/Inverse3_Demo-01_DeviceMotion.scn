@@ -22,36 +22,32 @@
     <DefaultAnimationLoop />
     <DefaultVisualManagerLoop />
 
-    <Haply_Inverse3Controller name="Device" scale="100.0" drawDebug="1" printLog="0"/>
-    <MechanicalObject template="Rigid3d" name="HaplyMO" position="@Device.positionDevice" />
+    <Haply_Inverse3Controller name="Device" scale="100.0" drawDebug="1" printLog="0" orientationBase="0 0.3826834 0 0.9238795"/>
+    <MechanicalObject template="Rigid3d" name="Inverse3Tip" position="@Device.positionDevice" />
+    <MechanicalObject template="Rigid3d" name="Inverse3Base" position="@Device.originDevice" />
 	
 	<Node name="Instrument" >
         <EulerImplicitSolver name="ODE solver" rayleighStiffness="0.0" rayleighMass="0.0" />
         <SparseLDLSolver template="CompressedRowSparseMatrixd"/>
         
-		<MechanicalObject name="instrumentState" template="Rigid3" />
+		<MechanicalObject name="instrumentState" template="Rigid3d" />
 		<UniformMass name="mass" totalMass="1" />
 		
-		<RestShapeSpringsForceField stiffness='1e9' angularStiffness='1e9' external_rest_shape='@../HaplyMO' points='0' external_points='0'/>
         <LinearSolverConstraintCorrection />
 		
         <Node name="VisuTool" >
             <MeshOBJLoader name="meshLoader_1" filename="./mesh/Stylus.obj" handleSeams="1"
                 rotation="0 0 0" translation="0 0 0"/>
             <OglModel name="InstrumentVisualModel" src="@meshLoader_1" color="1.0 1.0 1.0 1.0" />
-            <RigidMapping name="MM->VM mapping" input="@instrumentState" output="@InstrumentVisualModel" />
+            <RigidMapping name="stylusRigidMapping" input="@Inverse3Tip" output="@InstrumentVisualModel" />
         </Node>
 
-    </Node> 
-
-    <Node name="Inverse3Base">
-        <MechanicalObject name="intrumentBase" template="Rigid3" position="@Device.origineDevice"/>
-
-        <Node name="VisuTool" >
+        <Node name="Inverse3BaseVisu" >
             <MeshOBJLoader name="meshLoader_1" filename="./mesh/Inverse3.obj" handleSeams="1"
                 rotation="0 0 0" translation="0 0 0"/>
             <OglModel name="BaseVisualModel" src="@meshLoader_1" color="1.0 1.0 1.0 1.0" />
-            <RigidMapping name="MM->VM mapping" input="@../instrumentBase" output="@BaseVisualModel" />
+            <RigidMapping name="baseRigidMapping" input="@Inverse3Base" output="@BaseVisualModel" />
         </Node>
-    </Node>
+
+    </Node> 
 </Node>

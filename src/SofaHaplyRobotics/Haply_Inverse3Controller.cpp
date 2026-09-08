@@ -64,7 +64,7 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     , d_handleButtonB(initData(&d_handleButtonB, false, "handleButtonB", "Bool value returning if VerseGrip Stylus second button is pressed"))
     , d_handleButtonC(initData(&d_handleButtonC, false, "handleButtonC", "Bool value returning if VerseGrip Stylus calibrate button is pressed"))
     , d_posDevice(initData(&d_posDevice, "positionDevice", "position of the device end-effector in SOFA frame"))
-    , d_oriDevice(initData(&d_oriDevice, "origineDevice", "position of the device end-effector in SOFA frame"))
+    , d_oriDevice(initData(&d_oriDevice, "originDevice", "position of the device end-effector in SOFA frame"))
     , d_rawForceDevice(initData(&d_rawForceDevice, "rawForceDevice", "For debug: raw values sent to the device in the device frame"))
     , d_dampingForce(initData(&d_dampingForce, 0.0001, "damping", "Default damping applied to the force feedback"))
     
