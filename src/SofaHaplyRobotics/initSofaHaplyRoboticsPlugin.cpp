@@ -19,6 +19,13 @@
  ****************************************************************************/
 #include <SofaHaplyRobotics/config.h>
 
+#include <sofa/core/ObjectFactory.h>
+
+namespace sofa::HaplyRobotics
+{
+    void registerHaply_Inverse3Controller(sofa::core::ObjectFactory* factory);
+}
+
 namespace sofa::component
 {
 
@@ -31,6 +38,7 @@ extern "C" {
     SOFA_HAPLYROBOTICS_API const char* getModuleLicense();
     SOFA_HAPLYROBOTICS_API const char* getModuleDescription();
     SOFA_HAPLYROBOTICS_API const char* getModuleComponentList();
+    SOFA_HAPLYROBOTICS_API void registerObjects(sofa::core::ObjectFactory* factory);
 }
 
 void initExternalModule()
@@ -66,6 +74,11 @@ const char* getModuleDescription()
 const char* getModuleComponentList()
 {
     return "Haply_Inverse3Controller";
+}
+
+void registerObjects(sofa::core::ObjectFactory* factory)
+{
+    sofa::HaplyRobotics::registerHaply_Inverse3Controller(factory);
 }
 
 } // namespace sofa::component
