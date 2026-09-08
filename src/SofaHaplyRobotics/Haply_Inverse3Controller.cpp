@@ -64,6 +64,7 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     , d_handleButtonB(initData(&d_handleButtonB, false, "handleButtonB", "Bool value returning if VerseGrip Stylus second button is pressed"))
     , d_handleButtonC(initData(&d_handleButtonC, false, "handleButtonC", "Bool value returning if VerseGrip Stylus calibrate button is pressed"))
     , d_posDevice(initData(&d_posDevice, "positionDevice", "position of the device end-effector in SOFA frame"))
+    , d_oriDevice(initData(&d_oriDevice, "origineDevice", "position of the device end-effector in SOFA frame"))
     , d_rawForceDevice(initData(&d_rawForceDevice, "rawForceDevice", "For debug: raw values sent to the device in the device frame"))
     , d_dampingForce(initData(&d_dampingForce, 0.0001, "damping", "Default damping applied to the force feedback"))
     
@@ -131,6 +132,25 @@ void Haply_Inverse3Controller::init()
 
     m_logThread = f_printLog.getValue();
 
+    // measured workspace of the Inverse3 device, in real world (in m)
+    Vec3 minRef = { -0.245079, -0.262129, 0.0110037 };
+    Vec3 maxRef = { 0.258899, 0.152118, 0.317161 };
+
+	// Define the device position and orientation in the SOFA scene
+    const Vec3& positionBase = d_positionBase.getValue();
+    const Quat& orientationBase = d_orientationBase.getValue();
+    const SReal& scale = d_scale.getValue();
+
+    Coord& oriDevice = sofa::helper::getWriteOnlyAccessor(d_oriDevice);
+    oriDevice.getCenter() = positionBase;
+    oriDevice.getOrientation() = orientationBase;
+    
+	// Update the device bounding box in the SOFA scene
+	minRef = positionBase + orientationBase.rotate(minRef * scale);
+	maxRef = positionBase + orientationBase.rotate(maxRef * scale);
+    
+	m_BBdevice = sofa::type::BoundingBox(minRef, maxRef);
+    
     initDevice();
 }
 
@@ -496,6 +516,10 @@ void Haply_Inverse3Controller::draw(const sofa::core::visual::VisualParams* vpar
         color4 = sofa::type::RGBAColor(0.0f, 1.0, 0.0f, 1.0);
     }
     vparams->drawTool()->drawLine(posDevice.getCenter(), posDevice.getCenter() + d_rawForceDevice.getValue(), color4);
+
+
+    vparams->drawTool()->drawBoundingBox(m_BBdevice.minBBox(), m_BBdevice.maxBBox(), 1.0);
+
 }
 
 } // namespace sofa::HaplyRobotics
