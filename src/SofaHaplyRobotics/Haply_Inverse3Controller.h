@@ -110,7 +110,7 @@ public:
     Data<bool> d_handleButtonB; ///< Bool value showing if Second button is pressed
     Data<bool> d_handleButtonC; ///< Bool value showing if Third button is pressed
     Data<Coord> d_posDevice; ///< position of the device end-effector in SOFA Frame. Take into account @sa d_positionBase, @sa d_orientationBase and @sa d_scale
-	Data<Coord> d_oriDevice; ///< orientation of the device end-effector in SOFA Frame. Take into account @sa d_positionBase, @sa d_orientationBase and @sa d_scale
+	Data<Coord> d_oriDevice; ///< position (Rigid) of the base of the device (origin of the device in SOFA frame). Computed using @sa d_positionBase, @sa d_orientationBase and @sa d_scale
     Data<Vec3> d_rawForceDevice; ///< For debug: raw values sent to the device in the device frame
 	Data<SReal> d_dampingForce; ///< Damping value, it is a factor applied to the velocity and substracted to force feedback to avoid oscillations. 
 
@@ -171,7 +171,7 @@ private:
     static const std::string gripIdKey_;
     static const std::string wirelessGripIdKey_;
 
-	sofa::type::BoundingBox m_BBdevice; ///< Bounding box of the device in the device frame. Used to check if the device is in contact with the virtual environment.
+	sofa::type::BoundingBox m_BBdevice; ///< Bounding box representing the device workspace in the SOFA frame. Computed using recorded real workspace and taking into account @sa d_orientationBase, d_positionBase and d_scale
 };
 
 } // namespace sofa::HaplyRobotics
