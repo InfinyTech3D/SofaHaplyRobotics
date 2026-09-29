@@ -316,8 +316,9 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
                     if (forceAbs > 0.0f) {
                         isInContact = true;
 
-                        if (forceAbs > d_maxForce.getValue()) {
-                            forceInDevice[i] = d_maxForce.getValue();
+                        const SReal maxForce = d_maxForce.getValue();
+                        if (forceAbs > maxForce) {
+                            forceInDevice[i] = maxForce;
                             changed = true;
                         }
                     }
