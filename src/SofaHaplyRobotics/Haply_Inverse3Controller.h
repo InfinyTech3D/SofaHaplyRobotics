@@ -104,6 +104,7 @@ public:
     Data<Vec3> d_positionBase; ///< Input Position of the device base in the scene world coordinates
     Data<Quat> d_orientationBase; ///< Input Orientation of the device base in the scene world coordinates
     Data<SReal> d_scale; ///< Default scale applied to the device Coordinates
+    Data<Quat> d_calibrationOrientation; ///< Input Orientation of the VerseGrip at calibration in the device frame. Identity when calibrated pointing to the device +Y
 
     /// Output Data
     Data<bool> d_handleButtonA; ///< Bool value showing if First button is pressed
