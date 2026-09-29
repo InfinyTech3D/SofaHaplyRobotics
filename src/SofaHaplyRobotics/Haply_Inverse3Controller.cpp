@@ -61,6 +61,7 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     , d_positionBase(initData(&d_positionBase, Vec3(0, 0, 0), "positionBase", "Position of the device base in the SOFA scene world coordinates"))
     , d_orientationBase(initData(&d_orientationBase, Quat(0, 0, 0, 1), "orientationBase", "Orientation of the device base in the SOFA scene world coordinates"))    
     , d_scale(initData(&d_scale, 1.0, "scale", "Default scale applied to the Device coordinates"))    
+    , d_calibrationOrientation(initData(&d_calibrationOrientation, Quat(0, 0, 0, 1), "calibrationOrientation", "Orientation of the VerseGrip at calibration in the device frame. Identity when calibrated pointing to the device +Y"))
     
     , d_handleButtonA(initData(&d_handleButtonA, false, "handleButtonA", "Bool value returning if VerseGrip Stylus first button (resp. VerseGrip Quill single button) is pressed."))
     , d_handleButtonB(initData(&d_handleButtonB, false, "handleButtonB", "Bool value returning if VerseGrip Stylus second button is pressed"))
@@ -470,7 +471,8 @@ void Haply_Inverse3Controller::simulation_updatePosition()
 
     Coord& posDevice = sofa::helper::getWriteOnlyAccessor(d_posDevice);
     posDevice.getCenter() = positionBase + orientationBase.rotate(position * scale);
-    posDevice.getOrientation() = orientationBase * ori;
+    // The grip reports its rotation relative to the pose it was calibrated in.
+    posDevice.getOrientation() = orientationBase * d_calibrationOrientation.getValue() * ori;
 
     // for debug dump rawforce
     d_rawForceDevice.setValue(Vec3(m_simuData.force[0], m_simuData.force[1], m_simuData.force[2]));
