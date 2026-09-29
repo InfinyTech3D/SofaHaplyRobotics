@@ -364,8 +364,11 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
             float qz = state["orientation"]["z"].get<float>();
             float qw = state["orientation"]["w"].get<float>();
 
-            m_hapticData.orientation[0] = qx;
-            m_hapticData.orientation[1] = qy;
+            // Express the grip rotation in the device frame:
+            // grip frame:   X right, Y forward, Z up
+            // device frame: X back,  Y right,   Z up
+            m_hapticData.orientation[0] = -qy;
+            m_hapticData.orientation[1] = qx;
             m_hapticData.orientation[2] = qz;
             m_hapticData.orientation[3] = qw;
             m_hapticData.buttonA = state["button"].get<bool>();
@@ -387,8 +390,8 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
             float qz = state["orientation"]["z"].get<float>();
             float qw = state["orientation"]["w"].get<float>();
 
-            m_hapticData.orientation[0] = qx;
-            m_hapticData.orientation[1] = qy;
+            m_hapticData.orientation[0] = -qy;
+            m_hapticData.orientation[1] = qx;
             m_hapticData.orientation[2] = qz;
             m_hapticData.orientation[3] = qw;
             m_hapticData.buttonA = state["buttons"]["a"].get<bool>();
