@@ -70,6 +70,7 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     , d_oriDevice(initData(&d_oriDevice, "originDevice", "position (Rigid) of the base of the device (origin of the device in SOFA frame)"))
     , d_rawForceDevice(initData(&d_rawForceDevice, "rawForceDevice", "For debug: raw values sent to the device in the device frame"))
     , d_dampingForce(initData(&d_dampingForce, 0.0001, "damping", "Default damping applied to the force feedback"))
+    , d_maxForce(initData(&d_maxForce, 5.0, "maxForce", "Maximum absolute value of each force component sent to the device"))
     
     , d_drawDebug(initData(&d_drawDebug, false, "drawDebug", "Parameter to draw debug information"))
     , l_forceFeedback(initLink("forceFeedBack", "link to the forceFeedBack component, if not set will search through graph and take first one encountered."))
@@ -310,14 +311,15 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
                 forceInDevice = baseOrientation.inverseRotate(forceInSWorld);
                 bool changed = false;
                 bool isInContact = false;
+                const SReal maxForce = d_maxForce.getValue();
                 for (int i = 0; i < 3; ++i)
                 {
                     auto forceAbs = fabs(forceInDevice[i]);
                     if (forceAbs > 0.0f) {
                         isInContact = true;
 
-                        if (forceAbs > 5.f) {
-                            forceInDevice[i] = 0.0f;
+                        if (forceAbs > maxForce) {
+                            forceInDevice[i] = maxForce;
                             changed = true;
                         }
                     }

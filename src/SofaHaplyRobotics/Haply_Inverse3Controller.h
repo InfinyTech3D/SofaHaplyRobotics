@@ -114,6 +114,7 @@ public:
 	Data<Coord> d_oriDevice; ///< position (Rigid) of the base of the device (origin of the device in SOFA frame). Computed using @sa d_positionBase, @sa d_orientationBase and @sa d_scale
     Data<Vec3> d_rawForceDevice; ///< For debug: raw values sent to the device in the device frame
 	Data<SReal> d_dampingForce; ///< Damping value, it is a factor applied to the velocity and substracted to force feedback to avoid oscillations. 
+    Data<SReal> d_maxForce; ///< Maximum absolute value of each force component sent to the device
 
     /// Data parameter to draw debug information
     Data<bool> d_drawDebug;
