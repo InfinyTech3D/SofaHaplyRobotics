@@ -310,13 +310,13 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
                 forceInDevice = baseOrientation.inverseRotate(forceInSWorld);
                 bool changed = false;
                 bool isInContact = false;
+                const SReal maxForce = d_maxForce.getValue();
                 for (int i = 0; i < 3; ++i)
                 {
                     auto forceAbs = fabs(forceInDevice[i]);
                     if (forceAbs > 0.0f) {
                         isInContact = true;
 
-                        const SReal maxForce = d_maxForce.getValue();
                         if (forceAbs > maxForce) {
                             forceInDevice[i] = maxForce;
                             changed = true;
