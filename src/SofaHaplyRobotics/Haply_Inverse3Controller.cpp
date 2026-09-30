@@ -474,7 +474,7 @@ void Haply_Inverse3Controller::simulation_updatePosition()
     Coord& posDevice = sofa::helper::getWriteOnlyAccessor(d_posDevice);
     posDevice.getCenter() = positionBase + orientationBase.rotate(position * scale);
     // The grip reports its rotation relative to the pose it was calibrated in.
-    posDevice.getOrientation() = orientationBase * d_calibrationOrientation.getValue() * ori;
+    posDevice.getOrientation() = d_calibrationOrientation.getValue() * ori;
 
     // for debug dump rawforce
     d_rawForceDevice.setValue(Vec3(m_simuData.force[0], m_simuData.force[1], m_simuData.force[2]));
