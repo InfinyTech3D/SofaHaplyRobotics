@@ -22,7 +22,7 @@
     <DefaultAnimationLoop />
     <DefaultVisualManagerLoop />
 
-    <Haply_Inverse3Controller name="Device" scale="100.0" drawDebug="1" printLog="0" orientationBase="0 0 0 1" calibrationOrientation="0 0 0.7071068 0.7071068"/>
+    <Haply_Inverse3Controller name="Device" scale="100.0" drawDebug="1" printLog="0" orientationBase="0 0.3826834 0 0.9238795"/>
     <MechanicalObject template="Rigid3d" name="Inverse3Tip" position="@Device.positionDevice" />
     <MechanicalObject template="Rigid3d" name="Inverse3Base" position="@Device.originDevice" />
 	
