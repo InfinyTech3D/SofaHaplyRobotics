@@ -171,7 +171,7 @@ void Haply_Inverse3Controller::init()
                        << " forceCoef " << (forceCoef ? forceCoef->getValueString() : "none")
                        << " maxForce " << d_maxForce.getValue()
                        << " damping " << d_dampingForce.getValue() << "\n"
-                       << "# t deviceX deviceY deviceZ sceneX sceneY sceneZ fSceneX fSceneY fSceneZ fSentX fSentY fSentZ\n";
+                       << "# t deviceX deviceY deviceZ sceneX sceneY sceneZ fSceneX fSceneY fSceneZ fSent2DeviceX fSent2DeviceY fSent2DeviceZ\n";
             m_forceLogStart = CTime::getRefTime();
         }
     }
@@ -349,16 +349,17 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
                 if (changed)
                     msg_warning() << "Max force reached: " << baseOrientation.inverseRotate(forceInSWorld);
 
-                Vec3 forceSent{};
+                // forceInSWorld in the device frame, after clamping and damping
+                Vec3 forceSent2Device{};
                 // Send the current force value to the device
                 if (isInContact)
                 {
                     // Damping is an effective tool for smoothing velocityand thus can mitigate buzzing.A typical damping formula adds a retarding
                     // force proportional to the velocity of the device
                     const Vec3 retardingForce = { -Vx * damping, -Vy * damping, -Vz * damping };
-                    forceSent = forceInDevice + retardingForce;
+                    forceSent2Device = forceInDevice + retardingForce;
                 }
-                const json forces_obj = { {"x", forceSent[0]}, {"y", forceSent[1]}, {"z", forceSent[2]} };
+                const json forces_obj = { {"x", forceSent2Device[0]}, {"y", forceSent2Device[1]}, {"z", forceSent2Device[2]} };
 
                 request[inverseKey_].push_back({
                     {deviceIdKey_, device_id},
@@ -368,7 +369,7 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
                 if (m_forceLog.is_open())
                 {
                     const double t = double(CTime::getRefTime() - m_forceLogStart) / double(CTime::getRefTicksPerSec());
-                    m_forceLog << t << ' ' << pos << ' ' << posInSWorld << ' ' << forceInSWorld << ' ' << forceSent << '\n';
+                    m_forceLog << t << ' ' << pos << ' ' << posInSWorld << ' ' << forceInSWorld << ' ' << forceSent2Device << '\n';
                 }
             }
 
