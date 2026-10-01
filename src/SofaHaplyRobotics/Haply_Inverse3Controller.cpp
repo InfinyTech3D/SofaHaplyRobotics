@@ -349,21 +349,27 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
                 if (changed)
                     msg_warning() << "Max force reached: " << baseOrientation.inverseRotate(forceInSWorld);
 
-                json forces_obj = { {"x", 0}, {"y", 0}, {"z", 0} };
+                Vec3 forceSent{};
                 // Send the current force value to the device
                 if (isInContact)
                 {
                     // Damping is an effective tool for smoothing velocityand thus can mitigate buzzing.A typical damping formula adds a retarding
                     // force proportional to the velocity of the device
-                    float retardingForce[3] = { -Vx * damping, -Vy * damping, -Vz * damping };
-
-                    forces_obj = { {"x", forceInDevice[0] + retardingForce[0]}, {"y", forceInDevice[1] + retardingForce[1]}, {"z", forceInDevice[2] + retardingForce[2]} };
+                    const Vec3 retardingForce = { -Vx * damping, -Vy * damping, -Vz * damping };
+                    forceSent = forceInDevice + retardingForce;
                 }
+                const json forces_obj = { {"x", forceSent[0]}, {"y", forceSent[1]}, {"z", forceSent[2]} };
 
                 request[inverseKey_].push_back({
                     {deviceIdKey_, device_id},
                     {"commands", {{"set_cursor_force", {{"values", forces_obj}}}}}
                 });
+
+                if (m_forceLog.is_open())
+                {
+                    const double t = double(CTime::getRefTime() - m_forceLogStart) / double(CTime::getRefTicksPerSec());
+                    m_forceLog << t << ' ' << pos << ' ' << posInSWorld << ' ' << forceInSWorld << ' ' << forceSent << '\n';
+                }
             }
 
             // copy force for debug draw
