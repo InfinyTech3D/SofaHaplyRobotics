@@ -74,6 +74,7 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     
     , d_drawDebug(initData(&d_drawDebug, false, "drawDebug", "Parameter to draw debug information"))
     , d_forceLogFilename(initData(&d_forceLogFilename, std::string(), "forceLogFilename", "File where each force computed in the haptic loop is written, one line per sample. Relative paths are resolved from the working directory. Disabled if empty"))
+    , d_forceLogInterval(initData(&d_forceLogInterval, sofa::Size(1), "forceLogInterval", "Number of haptic loop iterations between two logged samples. 1 logs every iteration"))
     , l_forceFeedback(initLink("forceFeedBack", "link to the forceFeedBack component, if not set will search through graph and take first one encountered."))
 {
     this->f_listening.setValue(true);
@@ -159,6 +160,13 @@ void Haply_Inverse3Controller::init()
     const std::string& forceLogFilename = d_forceLogFilename.getValue();
     if (!forceLogFilename.empty())
     {
+        m_forceLogInterval = d_forceLogInterval.getValue();
+        if (m_forceLogInterval == 0)
+        {
+            msg_warning() << "forceLogInterval must be at least 1, using 1";
+            m_forceLogInterval = 1;
+        }
+
         m_forceLog.open(forceLogFilename);
         if (!m_forceLog)
         {
@@ -366,8 +374,9 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
                     {"commands", {{"set_cursor_force", {{"values", forces_obj}}}}}
                 });
 
-                if (m_forceLog.is_open())
+                if (m_forceLog.is_open() && ++m_forceLogCounter >= m_forceLogInterval)
                 {
+                    m_forceLogCounter = 0;
                     const double t = double(CTime::getRefTime() - m_forceLogStart) / double(CTime::getRefTicksPerSec());
                     m_forceLog << t << ' ' << pos << ' ' << posInSWorld << ' ' << forceInSWorld << ' ' << forceSent2Device << '\n';
                 }
