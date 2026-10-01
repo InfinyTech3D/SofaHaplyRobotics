@@ -30,6 +30,8 @@
 #include <libhv.h>
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
+
 
 using namespace std::chrono_literals;
 using namespace hv;
@@ -319,7 +321,7 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
                         isInContact = true;
 
                         if (forceAbs > maxForce) {
-                            forceInDevice[i] = maxForce;
+                            forceInDevice[i] = std::clamp(forceInDevice[i], -maxForce, maxForce);
                             changed = true;
                         }
                     }
