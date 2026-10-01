@@ -73,6 +73,7 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     , d_maxForce(initData(&d_maxForce, 5.0, "maxForce", "Maximum absolute value of each force component sent to the device"))
     
     , d_drawDebug(initData(&d_drawDebug, false, "drawDebug", "Parameter to draw debug information"))
+    , d_forceLogFilename(initData(&d_forceLogFilename, std::string(), "forceLogFilename", "File where each force computed in the haptic loop is written, one line per sample. Relative paths are resolved from the working directory. Disabled if empty"))
     , l_forceFeedback(initLink("forceFeedBack", "link to the forceFeedBack component, if not set will search through graph and take first one encountered."))
 {
     this->f_listening.setValue(true);
@@ -154,7 +155,27 @@ void Haply_Inverse3Controller::init()
 	maxRef = positionBase + orientationBase.rotate(maxRef * scale);
     
 	m_BBdevice = sofa::type::BoundingBox(minRef, maxRef);
-    
+
+    const std::string& forceLogFilename = d_forceLogFilename.getValue();
+    if (!forceLogFilename.empty())
+    {
+        m_forceLog.open(forceLogFilename);
+        if (!m_forceLog)
+        {
+            msg_error() << "Cannot open force log file: " << forceLogFilename;
+        }
+        else
+        {
+            const auto* forceCoef = m_forceFeedback ? m_forceFeedback->findData("forceCoef") : nullptr;
+            m_forceLog << "# scale " << scale
+                       << " forceCoef " << (forceCoef ? forceCoef->getValueString() : "none")
+                       << " maxForce " << d_maxForce.getValue()
+                       << " damping " << d_dampingForce.getValue() << "\n"
+                       << "# t deviceX deviceY deviceZ sceneX sceneY sceneZ fSceneX fSceneY fSceneZ fSentX fSentY fSentZ\n";
+            m_forceLogStart = CTime::getRefTime();
+        }
+    }
+
     initDevice();
 }
 
