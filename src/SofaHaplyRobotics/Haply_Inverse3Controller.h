@@ -23,9 +23,11 @@
 #include <sofa/type/Vec.h>
 #include <sofa/component/controller/Controller.h>
 #include <sofa/type/BoundingBox.h>
+#include <sofa/helper/system/thread/CTime.h>
 #include <mutex>
 #include <thread>
 #include <atomic>
+#include <fstream>
 
 //force feedback
 #include <sofa/component/haptics/ForceFeedback.h>
@@ -119,6 +121,12 @@ public:
     /// Data parameter to draw debug information
     Data<bool> d_drawDebug;
 
+    /// File where each force computed in the haptic loop is written. Disabled if empty
+    Data<std::string> d_forceLogFilename;
+
+    /// Number of haptic loop iterations between two logged samples
+    Data<sofa::Size> d_forceLogInterval;
+
 
     // Pointer to the forceFeedBack component
     ForceFeedback::SPtr m_forceFeedback;
@@ -153,6 +161,11 @@ private:
     bool m_simulationStarted = false; ///< Bool to store the information that the simulation is running or not.
 
     bool m_logThread = false;
+
+    std::ofstream m_forceLog; ///< File log written by the haptic thread
+    sofa::helper::system::thread::ctime_t m_forceLogStart = 0; ///< Wall-clock origin of the log timestamps
+    sofa::Size m_forceLogInterval = 1; ///< Copy of d_forceLogInterval, so the haptic thread never reads the Data
+    sofa::Size m_forceLogCounter = 0;
 
     /// Bool to notify thread to stop work
     std::atomic<bool> m_terminateHaptic = true;
