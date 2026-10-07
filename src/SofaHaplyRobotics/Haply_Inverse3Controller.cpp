@@ -46,6 +46,7 @@ const std::string Haply_Inverse3Controller::inverseKey_ = "inverse3";
 const std::string Haply_Inverse3Controller::deviceIdKey_ = "device_id";
 const std::string Haply_Inverse3Controller::gripIdKey_ = "verse_grip"; // Refered as "VerseGrip Quill" on Haply developer doc.
 const std::string Haply_Inverse3Controller::wirelessGripIdKey_ = "wireless_verse_grip"; // Refered as "VerseGrip Stylus" on Haply developer doc.
+const std::string Haply_Inverse3Controller::customGripIdKey_ = "custom_verse_grip";
 
 
 using namespace sofa::helper::system::thread;
@@ -75,7 +76,7 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     , d_dampingForce(initData(&d_dampingForce, 0.0001, "damping", "Default damping applied to the force feedback"))
     , d_maxForce(initData(&d_maxForce, 5.0, "maxForce", "Maximum absolute value of each force component sent to the device"))
 	, d_inputExtensionInfo(initData(&d_inputExtensionInfo, 0, "inputExtensionInfo", "Int value to send extension information to the device [0; 255]. For future use."))
-	, d_mimicCustomDevice(initData(&d_mimicCustomDevice, true, "mimicCustomDevice", "Temporary bool to activate mimic of a custom device If no available."))
+	, d_mimicCustomDevice(initData(&d_mimicCustomDevice, false, "mimicCustomDevice", "Temporary bool to activate mimic of a custom device If no available."))
 
     , d_drawDebug(initData(&d_drawDebug, false, "drawDebug", "Parameter to draw debug information"))
     , l_forceFeedback(initLink("forceFeedBack", "link to the forceFeedBack component, if not set will search through graph and take first one encountered."))
@@ -251,6 +252,7 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
     const Quat& baseOrientation = d_orientationBase.getValue();
     const SReal& scale = d_scale.getValue();
     const float damping = float(d_dampingForce.getValue());
+	int extensionValue = d_inputExtensionInfo.getValue();
 
     if (data[inverseKey_].empty()) {
         json update_request = {
@@ -405,6 +407,45 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
             m_hapticData.buttonC = state["buttons"]["c"].get<bool>();
         }
 	}
+    else if (data.contains(customGripIdKey_) && !data[customGripIdKey_].empty())
+    {
+        std::string device_id = "";
+        for (auto& el : data[customGripIdKey_])
+        {
+            device_id = el["device_id"];
+            const json& state = el["state"];
+
+            float qx = state["orientation"]["x"].get<float>();
+            float qy = state["orientation"]["y"].get<float>();
+            float qz = state["orientation"]["z"].get<float>();
+            float qw = state["orientation"]["w"].get<float>();
+
+            m_hapticData.orientation[0] = qx;
+            m_hapticData.orientation[1] = qy;
+            m_hapticData.orientation[2] = qz;
+            m_hapticData.orientation[3] = qw;
+            m_hapticData.buttonA = state["buttons"]["a"].get<bool>();
+            m_hapticData.buttonB = state["buttons"]["b"].get<bool>();
+            m_hapticData.buttonC = state["buttons"]["c"].get<bool>();
+			m_hapticData.extensionValue = state["extension_data"][1];
+        }
+
+        extensionValue = std::clamp(extensionValue, 0, 255);  // value allowed [0; 255]
+		if (oldExtensionValue != extensionValue)
+		{
+            json extensionData = json::array({
+                extensionValue,  // Byte 0: Command
+                0                // Byte 1: Reserved
+            });
+
+            request["wireless_verse_grip"].push_back({
+                {"device_id", device_id},
+                {"commands", {{"set_extension_data", {{"extension_data", extensionData}}}}}
+            });
+
+            oldExtensionValue = extensionValue;
+        }
+    }
 
     m_ws->send(request.dump());
 
