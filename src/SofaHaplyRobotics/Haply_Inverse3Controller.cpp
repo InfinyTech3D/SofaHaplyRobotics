@@ -68,12 +68,15 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     , d_handleButtonA(initData(&d_handleButtonA, false, "handleButtonA", "Bool value returning if VerseGrip Stylus first button (resp. VerseGrip Quill single button) is pressed."))
     , d_handleButtonB(initData(&d_handleButtonB, false, "handleButtonB", "Bool value returning if VerseGrip Stylus second button is pressed"))
     , d_handleButtonC(initData(&d_handleButtonC, false, "handleButtonC", "Bool value returning if VerseGrip Stylus calibrate button is pressed"))
+	, d_extensionButton(initData(&d_extensionButton, 0, "extensionButton", "Int value returning the extension value of the device [0; 255]. For future use."))
     , d_posDevice(initData(&d_posDevice, "positionDevice", "position of the device end-effector in SOFA frame"))
     , d_oriDevice(initData(&d_oriDevice, "originDevice", "position (Rigid) of the base of the device (origin of the device in SOFA frame)"))
     , d_rawForceDevice(initData(&d_rawForceDevice, "rawForceDevice", "For debug: raw values sent to the device in the device frame"))
     , d_dampingForce(initData(&d_dampingForce, 0.0001, "damping", "Default damping applied to the force feedback"))
     , d_maxForce(initData(&d_maxForce, 5.0, "maxForce", "Maximum absolute value of each force component sent to the device"))
-    
+	, d_inputExtensionInfo(initData(&d_inputExtensionInfo, 0, "inputExtensionInfo", "Int value to send extension information to the device [0; 255]. For future use."))
+	, d_mimicCustomDevice(initData(&d_mimicCustomDevice, true, "mimicCustomDevice", "Temporary bool to activate mimic of a custom device If no available."))
+
     , d_drawDebug(initData(&d_drawDebug, false, "drawDebug", "Parameter to draw debug information"))
     , l_forceFeedback(initLink("forceFeedBack", "link to the forceFeedBack component, if not set will search through graph and take first one encountered."))
 {
@@ -86,6 +89,7 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     d_handleButtonA.setReadOnly(true);
     d_handleButtonB.setReadOnly(true);
     d_handleButtonC.setReadOnly(true);
+	d_extensionButton.setReadOnly(true);
     this->addAlias(&this->d_handleButtonA, "handleButton");
     d_rawForceDevice.setReadOnly(true);
 
@@ -93,7 +97,7 @@ Haply_Inverse3Controller::Haply_Inverse3Controller()
     d_handleButtonA.setGroup("Device Status");
     d_handleButtonB.setGroup("Device Status");
     d_handleButtonC.setGroup("Device Status");
-
+	d_extensionButton.setGroup("Device Status");
     d_rawForceDevice.setGroup("Device Status");
 }
 
@@ -470,6 +474,20 @@ void Haply_Inverse3Controller::simulation_updatePosition()
     d_handleButtonA.setValue(m_simuData.buttonA);
     d_handleButtonB.setValue(m_simuData.buttonB);
     d_handleButtonC.setValue(m_simuData.buttonC);
+
+    if (d_mimicCustomDevice.getValue())
+    {
+        int value = d_extensionButton.getValue();
+        if (m_simuData.buttonA)
+			value += 1;
+		else if (m_simuData.buttonB)
+			value -= 1;
+
+        value = std::clamp(value, 0, 255);
+        d_extensionButton.setValue(value);
+    }
+    else
+	    d_extensionButton.setValue(m_simuData.extensionValue);
 
     Quat ori = { m_simuData.orientation[0], m_simuData.orientation[1], m_simuData.orientation[2], m_simuData.orientation[3] };
 

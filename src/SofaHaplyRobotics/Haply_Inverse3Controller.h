@@ -110,11 +110,15 @@ public:
     Data<bool> d_handleButtonA; ///< Bool value showing if First button is pressed
     Data<bool> d_handleButtonB; ///< Bool value showing if Second button is pressed
     Data<bool> d_handleButtonC; ///< Bool value showing if Third button is pressed
+	Data<int> d_extensionButton; ///< Int value showing the extension value of the device [0; 255]. For future use.
     Data<Coord> d_posDevice; ///< position of the device end-effector in SOFA Frame. Take into account @sa d_positionBase, @sa d_orientationBase and @sa d_scale
 	Data<Coord> d_oriDevice; ///< position (Rigid) of the base of the device (origin of the device in SOFA frame). Computed using @sa d_positionBase, @sa d_orientationBase and @sa d_scale
     Data<Vec3> d_rawForceDevice; ///< For debug: raw values sent to the device in the device frame
 	Data<SReal> d_dampingForce; ///< Damping value, it is a factor applied to the velocity and substracted to force feedback to avoid oscillations. 
     Data<SReal> d_maxForce; ///< Maximum absolute value of each force component sent to the device
+	
+    Data<int> d_inputExtensionInfo; /// Int value to send extension information to the device [0; 255]. For future use.
+	Data<bool> d_mimicCustomDevice; /// Temporary bool to activate mimic of a custom device If no available.
 
     /// Data parameter to draw debug information
     Data<bool> d_drawDebug;
@@ -136,6 +140,7 @@ public:
         bool buttonA; // button A press status
         bool buttonB; // button B press status
         bool buttonC; // button C press status
+		int extensionValue; // extension value for future use
     };
 
     /// Data belonging to the haptic thread only
