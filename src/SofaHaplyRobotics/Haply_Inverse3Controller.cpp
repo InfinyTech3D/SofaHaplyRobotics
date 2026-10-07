@@ -321,7 +321,7 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
                         isInContact = true;
 
                         if (forceAbs > maxForce) {
-                            forceInDevice[i] = std::clamp(forceInDevice[i], -maxForce, maxForce)*0.9;
+                            forceInDevice[i] = std::clamp(forceInDevice[i], -maxForce, maxForce);
                             changed = true;
                         }
                     }
