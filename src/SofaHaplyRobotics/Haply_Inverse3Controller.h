@@ -177,8 +177,10 @@ private:
     static const std::string deviceIdKey_;
     static const std::string gripIdKey_;
     static const std::string wirelessGripIdKey_;
+    static const std::string customGripIdKey_;
 
 	sofa::type::BoundingBox m_BBdevice; ///< Bounding box representing the device workspace in the SOFA frame. Computed using recorded real workspace and taking into account @sa d_orientationBase, d_positionBase and d_scale
+	int oldExtensionValue = 0; ///< Store the last extension value sent to the device to avoid sending same value multiple times.
 };
 
 } // namespace sofa::HaplyRobotics
