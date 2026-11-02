@@ -389,8 +389,10 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
         // example of wireless grip data
         // {"device_id":"1534","state":{"battery_level":0.55833346,"battery_voltage":3.935,"buttons":{"a":false,"b":false,"c":false},"hall":18,"orientation":{"w":-0.02947998, "x":-0.22390747, "y" : 0.65689087, "z" : 0.71691895},
         // "transform":{"position":{"x":0, "y" : 0, "z" : 0}, "rotation" : {"w":1, "x" : 0, "y" : 0, "z" : 0}, "scale" : {"x":1, "y" : 1, "z":1}}},"status":{"awake":true,"connected":true,"ready":true}}
+        std::string device_id = "";
         for (auto& el : data[wirelessGripIdKey_])
         {
+            device_id = el["device_id"];
             const json& state = el["state"];
 
             float qx = state["orientation"]["x"].get<float>();
@@ -405,6 +407,23 @@ void Haply_Inverse3Controller::HapticsHandling(const std::string& msg)
             m_hapticData.buttonA = state["buttons"]["a"].get<bool>();
             m_hapticData.buttonB = state["buttons"]["b"].get<bool>();
             m_hapticData.buttonC = state["buttons"]["c"].get<bool>();
+            m_hapticData.extensionValue = state["extension_data"][1];
+        }
+
+        extensionValue = std::clamp(extensionValue, 0, 255);  // value allowed [0; 255]
+        if (oldExtensionValue != extensionValue)
+        {
+            json extensionData = json::array({
+                extensionValue,  // Byte 0: Command
+                0                // Byte 1: Reserved
+                });
+
+            request["wireless_verse_grip"].push_back({
+                {"device_id", device_id},
+                {"commands", {{"set_extension_data", {{"extension_data", extensionData}}}}}
+                });
+
+            oldExtensionValue = extensionValue;
         }
     }
     else if (data.contains(customGripIdKey_) && !data[customGripIdKey_].empty())
